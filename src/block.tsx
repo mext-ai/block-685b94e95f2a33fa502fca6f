@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Box, Plane, Text, Cylinder, Torus } from '@react-three/drei';
-import * THREE from 'three';
+import * as THREE from 'three';
 
 interface BlockProps {
   title?: string;
@@ -495,7 +495,7 @@ function RaceTrack() {
             {/* Tronc */}
             <Cylinder args={[2, 3, 15]} position={[0, 7.5, 0]}>
               <meshStandardMaterial color="#8B4513" />
-            </Cylinder>
+            </Box>
             {/* Feuillage */}
             <Box args={[12, 12, 12]} position={[0, 18, 0]}>
               <meshStandardMaterial color="#006400" />
