@@ -238,7 +238,7 @@ function Car({ position, rotation, onPositionChange, onLapComplete, onRotationCh
     return newPos; // Pas de collision
   };
 
-  // LOGIQUE DE DÉTECTION AVEC ORDRE CORRIGÉ : DROITE → HAUT → GAUCHE → ARRIVÉE
+  // LOGIQUE DE DÉTECTION ÉLARGIE : CHECKPOINTS COUVRANT TOUTE LA LARGEUR DE LA ROUTE
   const checkLapProgress = (pos: number[]) => {
     const x = pos[0];
     const z = pos[2];
@@ -248,36 +248,40 @@ function Car({ position, rotation, onPositionChange, onLapComplete, onRotationCh
     const newProgress = { ...lapProgress };
     let stateChanged = false;
 
-    // CHECKPOINT 1 - DROITE de la piste (x > 150) - PREMIER dans le sens de circulation
-    if (!newProgress.checkpoints.checkpoint1 && x > 150 && Math.abs(z) < 80) {
+    // CHECKPOINT 1 - DROITE de la piste (x > 140) - ZONE ÉLARGIE pour couvrir toute la largeur
+    // Zone élargie : de x=140 à x=220 (toute la largeur de la route), z entre -100 et +100
+    if (!newProgress.checkpoints.checkpoint1 && x > 140 && x < 220 && z > -100 && z < 100) {
       newProgress.checkpoints.checkpoint1 = true;
       stateChanged = true;
-      console.log("✅ CHECKPOINT 1 (DROITE) franchi !");
+      console.log("✅ CHECKPOINT 1 (DROITE) franchi ! Zone élargie activée.");
     }
     
-    // CHECKPOINT 2 - HAUT de la piste (z > 150) - SEULEMENT si checkpoint 1 passé
+    // CHECKPOINT 2 - HAUT de la piste (z > 140) - ZONE ÉLARGIE pour couvrir toute la largeur
+    // Zone élargie : de z=140 à z=220 (toute la largeur de la route), x entre -100 et +100
     else if (newProgress.checkpoints.checkpoint1 && 
              !newProgress.checkpoints.checkpoint2 && 
-             z > 150 && Math.abs(x) < 80) {
+             z > 140 && z < 220 && x > -100 && x < 100) {
       newProgress.checkpoints.checkpoint2 = true;
       stateChanged = true;
-      console.log("✅ CHECKPOINT 2 (HAUT) franchi !");
+      console.log("✅ CHECKPOINT 2 (HAUT) franchi ! Zone élargie activée.");
     }
     
-    // CHECKPOINT 3 - GAUCHE de la piste (x < -150) - SEULEMENT si checkpoint 1+2 passés
+    // CHECKPOINT 3 - GAUCHE de la piste (x < -140) - ZONE ÉLARGIE pour couvrir toute la largeur
+    // Zone élargie : de x=-220 à x=-140 (toute la largeur de la route), z entre -100 et +100
     else if (newProgress.checkpoints.checkpoint1 && 
              newProgress.checkpoints.checkpoint2 && 
              !newProgress.checkpoints.checkpoint3 && 
-             x < -150 && Math.abs(z) < 80) {
+             x < -140 && x > -220 && z > -100 && z < 100) {
       newProgress.checkpoints.checkpoint3 = true;
       newProgress.canFinishLap = true; // Maintenant on peut finir le tour
       stateChanged = true;
-      console.log("✅ CHECKPOINT 3 (GAUCHE) franchi ! Peut finir le tour maintenant.");
+      console.log("✅ CHECKPOINT 3 (GAUCHE) franchi ! Zone élargie activée. Peut finir le tour maintenant.");
     }
     
-    // LIGNE D'ARRIVÉE - Finir le tour (zone de ligne d'arrivée au sud)
+    // LIGNE D'ARRIVÉE - Finir le tour (zone élargie de ligne d'arrivée au sud)
+    // Zone élargie : z entre -220 et -140, x entre -100 et +100 (toute la largeur)
     else if (newProgress.canFinishLap && 
-             z < -160 && z > -220 && Math.abs(x) < 60) {
+             z < -140 && z > -220 && x > -100 && x < 100) {
       
       // Vérification du délai minimum entre les tours
       const minDelay = 1000; // 1 seconde entre les tours
@@ -296,7 +300,7 @@ function Car({ position, rotation, onPositionChange, onLapComplete, onRotationCh
         newProgress.canFinishLap = false;
         
         stateChanged = true;
-        console.log(`🏁 TOUR ${newProgress.currentLap} TERMINÉ !`);
+        console.log(`🏁 TOUR ${newProgress.currentLap} TERMINÉ ! Zone d'arrivée élargie.`);
         
         // Signaler le tour complet au composant parent
         onLapComplete();
@@ -362,7 +366,7 @@ function Car({ position, rotation, onPositionChange, onLapComplete, onRotationCh
     setCarRotation(newRotation);
     setVelocity(newVelocity);
     
-    // Vérifier la progression du tour
+    // Vérifier la progression du tour avec zones élargies
     checkLapProgress(newPosition);
 
     // Mise à jour de l'objet 3D
@@ -616,57 +620,60 @@ function RaceTrack() {
         );
       })}
       
-      {/* Checkpoints - TOUS EN VERT */}
+      {/* Checkpoints ÉLARGIS - COUVRENT TOUTE LA LARGEUR DE LA ROUTE */}
       <group>
-        {/* Checkpoint 1 (DROITE) - Premier checkpoint dans le sens de circulation */}
+        {/* Checkpoint 1 (DROITE) - ZONE ÉLARGIE de x=140 à x=220, z de -100 à +100 */}
         <group position={[180, 0.3, 0]}>
-          <Box args={[120, 0.2, 2]} position={[0, 0, 0]}>
+          {/* Ligne principale élargie */}
+          <Box args={[200, 0.2, 8]} position={[0, 0, 0]}>
             <meshStandardMaterial color="#00ff00" emissive="#004400" />
           </Box>
-          {/* Rayures vertes alternées */}
-          {Array.from({ length: 40 }).map((_, i) => (
-            <Box key={i} args={[3, 0.3, 1]} position={[-60 + i * 3, 0, 0]}>
+          {/* Rayures vertes alternées plus larges */}
+          {Array.from({ length: 50 }).map((_, i) => (
+            <Box key={i} args={[4, 0.3, 4]} position={[-100 + i * 4, 0, 0]}>
               <meshStandardMaterial color={i % 2 === 0 ? "#00ff00" : "#00cc00"} emissive="#002200" />
             </Box>
           ))}
         </group>
         
-        {/* Checkpoint 2 (HAUT) - Deuxième checkpoint - REMIS EN VERT */}
+        {/* Checkpoint 2 (HAUT) - ZONE ÉLARGIE de z=140 à z=220, x de -100 à +100 */}
         <group position={[0, 0.3, 180]}>
-          <Box args={[2, 0.2, 120]} position={[0, 0, 0]}>
+          {/* Ligne principale élargie */}
+          <Box args={[8, 0.2, 200]} position={[0, 0, 0]}>
             <meshStandardMaterial color="#00ff00" emissive="#004400" />
           </Box>
-          {/* Rayures vertes alternées */}
-          {Array.from({ length: 40 }).map((_, i) => (
-            <Box key={i} args={[1, 0.3, 3]} position={[0, 0, -60 + i * 3]}>
+          {/* Rayures vertes alternées plus larges */}
+          {Array.from({ length: 50 }).map((_, i) => (
+            <Box key={i} args={[4, 0.3, 4]} position={[0, 0, -100 + i * 4]}>
               <meshStandardMaterial color={i % 2 === 0 ? "#00ff00" : "#00cc00"} emissive="#002200" />
             </Box>
           ))}
         </group>
         
-        {/* Checkpoint 3 (GAUCHE) - Troisième checkpoint - REMIS EN VERT */}
+        {/* Checkpoint 3 (GAUCHE) - ZONE ÉLARGIE de x=-220 à x=-140, z de -100 à +100 */}
         <group position={[-180, 0.3, 0]}>
-          <Box args={[120, 0.2, 2]} position={[0, 0, 0]}>
+          {/* Ligne principale élargie */}
+          <Box args={[200, 0.2, 8]} position={[0, 0, 0]}>
             <meshStandardMaterial color="#00ff00" emissive="#004400" />
           </Box>
-          {/* Rayures vertes alternées */}
-          {Array.from({ length: 40 }).map((_, i) => (
-            <Box key={i} args={[3, 0.3, 1]} position={[-60 + i * 3, 0, 0]}>
+          {/* Rayures vertes alternées plus larges */}
+          {Array.from({ length: 50 }).map((_, i) => (
+            <Box key={i} args={[4, 0.3, 4]} position={[-100 + i * 4, 0, 0]}>
               <meshStandardMaterial color={i % 2 === 0 ? "#00ff00" : "#00cc00"} emissive="#002200" />
             </Box>
           ))}
         </group>
       </group>
       
-      {/* Ligne de départ/arrivée avec damier - GARDE LE PANNEAU POUR LA LIGNE D'ARRIVÉE */}
+      {/* Ligne de départ/arrivée avec damier - ZONE ÉLARGIE */}
       <group position={[0, 0.4, -180]} rotation={[0, 0, 0]}>
-        {/* Ligne d'arrivée perpendiculaire qui traverse toute la largeur de la piste */}
-        <Box args={[3, 0.2, 80]} position={[0, 0, 0]}>
+        {/* Ligne d'arrivée perpendiculaire élargie qui traverse toute la largeur de la piste */}
+        <Box args={[8, 0.2, 200]} position={[0, 0, 0]}>
           <meshStandardMaterial color="#ffffff" />
         </Box>
-        {/* Motif damier perpendiculaire - traverse toute la largeur */}
-        {Array.from({ length: 20 }).map((_, i) => (
-          <Box key={i} args={[2, 0.3, 4]} position={[0, 0, -40 + i * 4]}>
+        {/* Motif damier perpendiculaire élargi - traverse toute la largeur */}
+        {Array.from({ length: 50 }).map((_, i) => (
+          <Box key={i} args={[4, 0.3, 4]} position={[0, 0, -100 + i * 4]}>
             <meshStandardMaterial color={i % 2 === 0 ? "#000000" : "#ffffff"} />
           </Box>
         ))}
@@ -770,7 +777,7 @@ function UI({ currentLap, totalLaps, gameWon, raceTime, cameraMode, onCameraMode
       border: '2px solid #ffdd00'
     }}>
       <h3 style={{ margin: '0 0 15px 0', color: '#ffdd00', textAlign: 'center' }}>
-        🏁 Circuit F1 - AVEC BARRIÈRES
+        🏁 Circuit F1 - CHECKPOINTS ÉLARGIS
       </h3>
       
       <div style={{ 
@@ -870,8 +877,8 @@ function UI({ currentLap, totalLaps, gameWon, raceTime, cameraMode, onCameraMode
         <div>↓/S - Freiner</div>
         <div>←/A - Tourner à gauche</div>
         <div>→/D - Tourner à droite</div>
-        <div style={{ marginTop: '10px', color: '#ff6666' }}>
-          ⚠️ Attention aux barrières rouges !
+        <div style={{ marginTop: '10px', color: '#00ff00' }}>
+          ✅ Checkpoints élargis pour plus de facilité !
         </div>
       </div>
     </div>
