@@ -335,7 +335,7 @@ function RaceTrack() {
             </Box>
             <Plane args={[25, 10]} position={[0, 0, 0.6]}>
               <meshStandardMaterial color="#ffffff" />
-            </Box>
+            </Plane>
           </group>
         );
       })}
