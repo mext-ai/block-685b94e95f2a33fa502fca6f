@@ -172,13 +172,16 @@ function Car({ position, rotation, onPositionChange, onLapComplete, onRotationCh
   const [velocity, setVelocity] = useState({ x: 0, z: 0 });
   const keysPressed = useRef<{ [key: string]: boolean }>({});
   
-  // SYSTÈME DE TOUR CORRIGÉ - COMPTER IMMÉDIATEMENT LE PREMIER TOUR
-  const [lapState, setLapState] = useState({
-    checkpoint1: false,
-    checkpoint2: false,
-    checkpoint3: false,
-    lastFinishTime: 0,
-    isFirstLap: true // NOUVEAU : pour gérer le premier tour
+  // SYSTÈME DE TOUR COMPLÈTEMENT REFAIT - LOGIQUE SIMPLIFIÉE
+  const [lapProgress, setLapProgress] = useState({
+    currentLap: 0,
+    checkpoints: {
+      checkpoint1: false, // Haut (z > 150)
+      checkpoint2: false, // Droite (x > 150)
+      checkpoint3: false  // Gauche (x < -150)
+    },
+    lastLapTime: 0,
+    canFinishLap: false
   });
 
   useEffect(() => {
@@ -199,71 +202,81 @@ function Car({ position, rotation, onPositionChange, onLapComplete, onRotationCh
     };
   }, []);
 
-  // SYSTÈME DE DÉTECTION CORRIGÉ - LE PREMIER TOUR COMPTE IMMÉDIATEMENT
+  // LOGIQUE DE DÉTECTION DE TOUR SIMPLIFIÉE ET CORRIGÉE
   const checkLapProgress = (pos: number[]) => {
     const x = pos[0];
     const z = pos[2];
     const currentTime = Date.now();
     
-    // Copie de l'état actuel
-    let newLapState = { ...lapState };
-    
-    // 1. CHECKPOINT 1 (haut)
-    if (!newLapState.checkpoint1 && z > 150 && Math.abs(x) < 70) {
-      newLapState.checkpoint1 = true;
-      console.log("✅ CHECKPOINT 1 franchi !");
-      setLapState(newLapState);
-      return;
+    // Créer une copie de l'état actuel
+    const newProgress = { ...lapProgress };
+    let stateChanged = false;
+
+    // CHECKPOINT 1 - Haut de la piste (z > 150)
+    if (!newProgress.checkpoints.checkpoint1 && z > 150 && Math.abs(x) < 80) {
+      newProgress.checkpoints.checkpoint1 = true;
+      stateChanged = true;
+      console.log("✅ CHECKPOINT 1 (HAUT) franchi !");
     }
     
-    // 2. CHECKPOINT 2 (droite) - seulement si checkpoint 1 passé
-    if (newLapState.checkpoint1 && !newLapState.checkpoint2 && x > 150 && Math.abs(z) < 70) {
-      newLapState.checkpoint2 = true;
-      console.log("✅ CHECKPOINT 2 franchi !");
-      setLapState(newLapState);
-      return;
+    // CHECKPOINT 2 - Droite de la piste (x > 150) - SEULEMENT si checkpoint 1 passé
+    else if (newProgress.checkpoints.checkpoint1 && 
+             !newProgress.checkpoints.checkpoint2 && 
+             x > 150 && Math.abs(z) < 80) {
+      newProgress.checkpoints.checkpoint2 = true;
+      stateChanged = true;
+      console.log("✅ CHECKPOINT 2 (DROITE) franchi !");
     }
     
-    // 3. CHECKPOINT 3 (gauche) - seulement si checkpoint 2 passé
-    if (newLapState.checkpoint2 && !newLapState.checkpoint3 && x < -150 && Math.abs(z) < 70) {
-      newLapState.checkpoint3 = true;
-      console.log("✅ CHECKPOINT 3 franchi !");
-      setLapState(newLapState);
-      return;
+    // CHECKPOINT 3 - Gauche de la piste (x < -150) - SEULEMENT si checkpoint 2 passé
+    else if (newProgress.checkpoints.checkpoint1 && 
+             newProgress.checkpoints.checkpoint2 && 
+             !newProgress.checkpoints.checkpoint3 && 
+             x < -150 && Math.abs(z) < 80) {
+      newProgress.checkpoints.checkpoint3 = true;
+      newProgress.canFinishLap = true; // Maintenant on peut finir le tour
+      stateChanged = true;
+      console.log("✅ CHECKPOINT 3 (GAUCHE) franchi ! Peut finir le tour maintenant.");
     }
     
-    // 4. LIGNE D'ARRIVÉE - Tour complet (pas de délai pour le premier tour)
-    if (newLapState.checkpoint1 && 
-        newLapState.checkpoint2 && 
-        newLapState.checkpoint3 && 
-        z > -200 && z < -160 && Math.abs(x) < 50) {
+    // LIGNE D'ARRIVÉE - Finir le tour (z < -160) - SEULEMENT si tous les checkpoints sont passés
+    else if (newProgress.canFinishLap && 
+             z < -160 && z > -220 && Math.abs(x) < 60) {
       
-      // Pour le premier tour : pas de délai minimum
-      // Pour les tours suivants : délai de 3 secondes
-      const minDelay = newLapState.isFirstLap ? 0 : 3000;
+      // Vérification du délai minimum (sauf pour le premier tour)
+      const minDelay = newProgress.currentLap === 0 ? 0 : 2000; // 2 secondes entre les tours
       
-      if ((currentTime - newLapState.lastFinishTime) > minDelay) {
-        console.log(`🏁 TOUR ${newLapState.isFirstLap ? '1' : 'SUIVANT'} TERMINÉ !`);
+      if ((currentTime - newProgress.lastLapTime) > minDelay) {
+        // TOUR TERMINÉ !
+        newProgress.currentLap += 1;
+        newProgress.lastLapTime = currentTime;
         
-        // Signaler le tour complet
-        onLapComplete();
-        
-        // REMISE À ZÉRO POUR LE TOUR SUIVANT
-        setLapState({
+        // Remettre à zéro les checkpoints pour le tour suivant
+        newProgress.checkpoints = {
           checkpoint1: false,
           checkpoint2: false,
-          checkpoint3: false,
-          lastFinishTime: currentTime,
-          isFirstLap: false // Plus le premier tour
-        });
+          checkpoint3: false
+        };
+        newProgress.canFinishLap = false;
+        
+        stateChanged = true;
+        console.log(`🏁 TOUR ${newProgress.currentLap} TERMINÉ !`);
+        
+        // Signaler le tour complet au composant parent
+        onLapComplete();
       }
+    }
+
+    // Mettre à jour l'état seulement si quelque chose a changé
+    if (stateChanged) {
+      setLapProgress(newProgress);
     }
   };
 
   useFrame(() => {
     if (!carRef.current) return;
 
-    const speed = 0.15; // Vitesse RÉDUITE (était 0.3)
+    const speed = 0.15;
     const rotationSpeed = 0.04;
     let newVelocity = { ...velocity };
     let newRotation = carRotation;
@@ -286,8 +299,8 @@ function Car({ position, rotation, onPositionChange, onLapComplete, onRotationCh
       newVelocity.z -= Math.cos(newRotation) * speed * 0.6;
     }
 
-    // Friction AUGMENTÉE pour moins de glissement
-    newVelocity.x *= 0.92; // Plus de friction (était 0.98)
+    // Friction
+    newVelocity.x *= 0.92;
     newVelocity.z *= 0.92;
 
     // Mise à jour de la position
@@ -297,7 +310,7 @@ function Car({ position, rotation, onPositionChange, onLapComplete, onRotationCh
       carPosition[2] + newVelocity.z
     ];
 
-    // Limites générales élargies x10
+    // Limites de la piste
     const trackLimit = 250;
     if (Math.abs(newPosition[0]) > trackLimit) {
       newPosition[0] = carPosition[0];
@@ -312,7 +325,7 @@ function Car({ position, rotation, onPositionChange, onLapComplete, onRotationCh
     setCarRotation(newRotation);
     setVelocity(newVelocity);
     
-    // Vérifier les checkpoints
+    // Vérifier la progression du tour
     checkLapProgress(newPosition);
 
     // Mise à jour de l'objet 3D
@@ -526,12 +539,12 @@ function RaceTrack() {
       <group>
         {/* Checkpoint 1 (haut) - Ligne verte striée ÉLARGIE */}
         <group position={[0, 0.3, 180]}>
-          <Box args={[2, 0.2, 100]} position={[0, 0, 0]}>
+          <Box args={[2, 0.2, 120]} position={[0, 0, 0]}>
             <meshStandardMaterial color="#00ff00" emissive="#004400" />
           </Box>
           {/* Rayures vertes alternées */}
-          {Array.from({ length: 33 }).map((_, i) => (
-            <Box key={i} args={[1, 0.3, 3]} position={[0, 0, -50 + i * 3]}>
+          {Array.from({ length: 40 }).map((_, i) => (
+            <Box key={i} args={[1, 0.3, 3]} position={[0, 0, -60 + i * 3]}>
               <meshStandardMaterial color={i % 2 === 0 ? "#00ff00" : "#00cc00"} emissive="#002200" />
             </Box>
           ))}
@@ -539,12 +552,12 @@ function RaceTrack() {
         
         {/* Checkpoint 2 (droite) - Ligne verte striée ÉLARGIE */}
         <group position={[180, 0.3, 0]}>
-          <Box args={[100, 0.2, 2]} position={[0, 0, 0]}>
+          <Box args={[120, 0.2, 2]} position={[0, 0, 0]}>
             <meshStandardMaterial color="#00ff00" emissive="#004400" />
           </Box>
           {/* Rayures vertes alternées */}
-          {Array.from({ length: 33 }).map((_, i) => (
-            <Box key={i} args={[3, 0.3, 1]} position={[-50 + i * 3, 0, 0]}>
+          {Array.from({ length: 40 }).map((_, i) => (
+            <Box key={i} args={[3, 0.3, 1]} position={[-60 + i * 3, 0, 0]}>
               <meshStandardMaterial color={i % 2 === 0 ? "#00ff00" : "#00cc00"} emissive="#002200" />
             </Box>
           ))}
@@ -552,12 +565,12 @@ function RaceTrack() {
         
         {/* Checkpoint 3 (gauche) - Ligne verte striée ÉLARGIE */}
         <group position={[-180, 0.3, 0]}>
-          <Box args={[100, 0.2, 2]} position={[0, 0, 0]}>
+          <Box args={[120, 0.2, 2]} position={[0, 0, 0]}>
             <meshStandardMaterial color="#00ff00" emissive="#004400" />
           </Box>
           {/* Rayures vertes alternées */}
-          {Array.from({ length: 33 }).map((_, i) => (
-            <Box key={i} args={[3, 0.3, 1]} position={[-50 + i * 3, 0, 0]}>
+          {Array.from({ length: 40 }).map((_, i) => (
+            <Box key={i} args={[3, 0.3, 1]} position={[-60 + i * 3, 0, 0]}>
               <meshStandardMaterial color={i % 2 === 0 ? "#00ff00" : "#00cc00"} emissive="#002200" />
             </Box>
           ))}
@@ -567,12 +580,12 @@ function RaceTrack() {
       {/* Ligne de départ/arrivée avec damier - PERPENDICULAIRE À LA ROUTE (côté sud) */}
       <group position={[0, 0.4, -180]} rotation={[0, 0, 0]}>
         {/* Ligne d'arrivée perpendiculaire qui traverse toute la largeur de la piste */}
-        <Box args={[3, 0.2, 60]} position={[0, 0, 0]}>
+        <Box args={[3, 0.2, 80]} position={[0, 0, 0]}>
           <meshStandardMaterial color="#ffffff" />
         </Box>
         {/* Motif damier perpendiculaire - traverse toute la largeur */}
-        {Array.from({ length: 15 }).map((_, i) => (
-          <Box key={i} args={[2, 0.3, 4]} position={[0, 0, -30 + i * 4]}>
+        {Array.from({ length: 20 }).map((_, i) => (
+          <Box key={i} args={[2, 0.3, 4]} position={[0, 0, -40 + i * 4]}>
             <meshStandardMaterial color={i % 2 === 0 ? "#000000" : "#ffffff"} />
           </Box>
         ))}
@@ -785,14 +798,14 @@ function UI({ currentLap, totalLaps, gameWon, raceTime, cameraMode, onCameraMode
 
 const Block: React.FC<BlockProps> = ({ title, description }) => {
   const [gameStarted, setGameStarted] = useState(false);
-  const [carPosition, setCarPosition] = useState([0, 1, -210]); // Position CORRIGÉE : centrée sur la piste circulaire
-  const [carRotation, setCarRotation] = useState(-Math.PI / 2); // ROTATION CORRIGÉE : -90° pour démarrer dans le bon sens
+  const [carPosition, setCarPosition] = useState([0, 1, -210]);
+  const [carRotation, setCarRotation] = useState(-Math.PI / 2);
   const [currentLap, setCurrentLap] = useState(0);
   const [totalLaps] = useState(3);
   const [gameWon, setGameWon] = useState(false);
   const [startTime] = useState(Date.now());
   const [raceTime, setRaceTime] = useState(0);
-  const [cameraMode, setCameraMode] = useState('follow'); // 'follow', 'cockpit', 'aerial'
+  const [cameraMode, setCameraMode] = useState('follow');
 
   const handleStartGame = () => {
     setGameStarted(true);
