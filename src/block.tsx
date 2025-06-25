@@ -21,7 +21,6 @@ function Car({ position, rotation, onPositionChange, onLapComplete }: any) {
     checkpoint3: false,
     checkpoint4: false
   });
-  const [lastLapTime, setLastLapTime] = useState(Date.now());
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -65,7 +64,7 @@ function Car({ position, rotation, onPositionChange, onLapComplete }: any) {
     }
     
     // Ligne d'arrivée (tour complet)
-    if (z > 0 && z < 3 && Math.abs(x) < 3 && 
+    if (z > -2 && z < 2 && Math.abs(x) < 3 && 
         checkpoints.checkpoint1 && checkpoints.checkpoint2 && 
         checkpoints.checkpoint3 && checkpoints.checkpoint4) {
       // Tour complet !
@@ -97,7 +96,7 @@ function Car({ position, rotation, onPositionChange, onLapComplete }: any) {
       newRotation -= rotationSpeed;
     }
 
-    // Contrôles d'accélération
+    // Contrôles d'accélération - CORRIGÉ
     if (keysPressed.current['ArrowUp'] || keysPressed.current['KeyW']) {
       newVelocity.x += Math.sin(newRotation) * speed;
       newVelocity.z += Math.cos(newRotation) * speed;
@@ -120,13 +119,13 @@ function Car({ position, rotation, onPositionChange, onLapComplete }: any) {
 
     // Collision avec les bordures de la piste circulaire
     const centerDistance = Math.sqrt(newPosition[0] * newPosition[0] + newPosition[2] * newPosition[2]);
-    const outerLimit = 13;
-    const innerLimit = 6;
+    const outerLimit = 12.5;
+    const innerLimit = 6.5;
     
     if (centerDistance > outerLimit || centerDistance < innerLimit) {
-      // Collision - arrêt de la voiture
-      newVelocity.x *= -0.3;
-      newVelocity.z *= -0.3;
+      // Collision - rebond
+      newVelocity.x *= -0.5;
+      newVelocity.z *= -0.5;
     } else {
       setCarPosition(newPosition);
       checkCheckpoints(newPosition);
@@ -136,8 +135,10 @@ function Car({ position, rotation, onPositionChange, onLapComplete }: any) {
     setVelocity(newVelocity);
 
     // Mise à jour de l'objet 3D
-    carRef.current.position.set(carPosition[0], carPosition[1], carPosition[2]);
-    carRef.current.rotation.y = newRotation;
+    if (carRef.current) {
+      carRef.current.position.set(carPosition[0], carPosition[1], carPosition[2]);
+      carRef.current.rotation.y = newRotation;
+    }
 
     onPositionChange(carPosition);
   });
@@ -213,9 +214,9 @@ function CircularTrack() {
 
   return (
     <group>
-      {/* Sol de la piste */}
-      <Plane args={[40, 40]} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.5, 0]}>
-        <meshStandardMaterial color="#333333" />
+      {/* Sol de base */}
+      <Plane args={[50, 50]} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.5, 0]}>
+        <meshStandardMaterial color="#228B22" />
       </Plane>
       
       {/* Piste circulaire */}
@@ -224,7 +225,7 @@ function CircularTrack() {
       </Plane>
       
       {/* Ligne de départ/arrivée */}
-      <Box args={[4, 0.2, 0.5]} position={[0, 0.1, 1.5]}>
+      <Box args={[4, 0.2, 0.5]} position={[0, 0.1, 0]}>
         <meshStandardMaterial color="#ffffff" />
       </Box>
       
@@ -302,7 +303,7 @@ function UI({ currentLap, totalLaps, gameWon, raceTime }: any) {
 }
 
 const Block: React.FC<BlockProps> = ({ title, description }) => {
-  const [carPosition, setCarPosition] = useState([0, 0, 1.5]);
+  const [carPosition, setCarPosition] = useState([0, 0, -9]); // Position de départ corrigée sur la piste
   const [currentLap, setCurrentLap] = useState(0);
   const [totalLaps] = useState(3);
   const [gameWon, setGameWon] = useState(false);
@@ -372,10 +373,10 @@ const Block: React.FC<BlockProps> = ({ title, description }) => {
         {/* Piste circulaire */}
         <CircularTrack />
         
-        {/* Voiture */}
+        {/* Voiture - Position corrigée */}
         <Car 
-          position={[0, 0, 1.5]} 
-          rotation={Math.PI}
+          position={[0, 0, -9]} 
+          rotation={0}
           onPositionChange={setCarPosition}
           onLapComplete={handleLapComplete}
         />
