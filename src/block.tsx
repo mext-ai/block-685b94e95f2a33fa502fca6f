@@ -221,10 +221,10 @@ const Block: React.FC<BlockProps> = ({ title, description }) => {
         {/* Piste */}
         <Track />
         
-        {/* Voiture */}
+        {/* Voiture - Maintenant orientée dans le sens inverse */}
         <Car 
           position={[0, 0, 0]} 
-          rotation={0}
+          rotation={Math.PI}
           onPositionChange={setCarPosition}
         />
         
