@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, Box, Plane, Text, useGLTF } from '@react-three/drei';
+import { OrbitControls, Box, Plane, Text, Cylinder, Torus } from '@react-three/drei';
 import * as THREE from 'three';
 
 interface BlockProps {
@@ -144,57 +144,168 @@ function Car({ position, rotation, onPositionChange, onLapComplete }: any) {
 
   return (
     <group ref={carRef}>
-      {/* Corps de la voiture */}
-      <Box args={[2, 0.5, 4]} position={[0, 0.25, 0]}>
-        <meshStandardMaterial color="#ff4444" />
+      {/* Corps de la voiture - Style plus moderne */}
+      <Box args={[2, 0.6, 4]} position={[0, 0.3, 0]}>
+        <meshStandardMaterial color="#ff4444" metalness={0.7} roughness={0.3} />
       </Box>
       {/* Toit */}
-      <Box args={[1.5, 0.8, 2]} position={[0, 0.9, -0.2]}>
-        <meshStandardMaterial color="#cc3333" />
+      <Box args={[1.6, 0.8, 2.2]} position={[0, 1, -0.2]}>
+        <meshStandardMaterial color="#cc3333" metalness={0.8} roughness={0.2} />
       </Box>
-      {/* Roues */}
-      <Box args={[0.3, 0.6, 0.6]} position={[-1.2, -0.1, 1.3]}>
-        <meshStandardMaterial color="#222222" />
+      {/* Pare-brise */}
+      <Box args={[1.4, 0.6, 0.1]} position={[0, 1.2, 0.8]}>
+        <meshStandardMaterial color="#87CEEB" transparent opacity={0.7} />
       </Box>
-      <Box args={[0.3, 0.6, 0.6]} position={[1.2, -0.1, 1.3]}>
-        <meshStandardMaterial color="#222222" />
-      </Box>
-      <Box args={[0.3, 0.6, 0.6]} position={[-1.2, -0.1, -1.3]}>
-        <meshStandardMaterial color="#222222" />
-      </Box>
-      <Box args={[0.3, 0.6, 0.6]} position={[1.2, -0.1, -1.3]}>
-        <meshStandardMaterial color="#222222" />
-      </Box>
+      {/* Roues avec jantes */}
+      <Cylinder args={[0.4, 0.4, 0.3]} position={[-1.2, 0, 1.5]} rotation={[0, 0, Math.PI/2]}>
+        <meshStandardMaterial color="#333333" />
+      </Cylinder>
+      <Cylinder args={[0.4, 0.4, 0.3]} position={[1.2, 0, 1.5]} rotation={[0, 0, Math.PI/2]}>
+        <meshStandardMaterial color="#333333" />
+      </Cylinder>
+      <Cylinder args={[0.4, 0.4, 0.3]} position={[-1.2, 0, -1.5]} rotation={[0, 0, Math.PI/2]}>
+        <meshStandardMaterial color="#333333" />
+      </Cylinder>
+      <Cylinder args={[0.4, 0.4, 0.3]} position={[1.2, 0, -1.5]} rotation={[0, 0, Math.PI/2]}>
+        <meshStandardMaterial color="#333333" />
+      </Cylinder>
+      {/* Jantes chromées */}
+      <Cylinder args={[0.25, 0.25, 0.1]} position={[-1.3, 0, 1.5]} rotation={[0, 0, Math.PI/2]}>
+        <meshStandardMaterial color="#silver" metalness={0.9} roughness={0.1} />
+      </Cylinder>
+      <Cylinder args={[0.25, 0.25, 0.1]} position={[1.3, 0, 1.5]} rotation={[0, 0, Math.PI/2]}>
+        <meshStandardMaterial color="#silver" metalness={0.9} roughness={0.1} />
+      </Cylinder>
+      <Cylinder args={[0.25, 0.25, 0.1]} position={[-1.3, 0, -1.5]} rotation={[0, 0, Math.PI/2]}>
+        <meshStandardMaterial color="#silver" metalness={0.9} roughness={0.1} />
+      </Cylinder>
+      <Cylinder args={[0.25, 0.25, 0.1]} position={[1.3, 0, -1.5]} rotation={[0, 0, Math.PI/2]}>
+        <meshStandardMaterial color="#silver" metalness={0.9} roughness={0.1} />
+      </Cylinder>
     </group>
   );
 }
 
-// Composant pour charger et afficher votre piste 3D
+// Piste 3D procédurale moderne
 function RaceTrack() {
-  const { scene } = useGLTF('https://mext-content-library.s3.eu-west-3.amazonaws.com/uploads/90d075a3-bdf2-4b14-9d30-30d8df192786.glb');
-  
   return (
     <group>
-      <primitive object={scene} scale={[1, 1, 1]} position={[0, 0, 0]} />
+      {/* Base de la piste - Tore principal */}
+      <Torus args={[18, 4, 8, 30]} position={[0, 0, 0]} rotation={[Math.PI/2, 0, 0]}>
+        <meshStandardMaterial color="#444444" />
+      </Torus>
       
-      {/* Checkpoints verts pour le système de tours */}
-      <Box args={[3, 0.5, 1]} position={[0, 1, 20]}>
-        <meshStandardMaterial color="#00ff00" transparent opacity={0.7} />
-      </Box>
-      <Box args={[1, 0.5, 3]} position={[20, 1, 0]}>
-        <meshStandardMaterial color="#00ff00" transparent opacity={0.7} />
-      </Box>
-      <Box args={[3, 0.5, 1]} position={[0, 1, -20]}>
-        <meshStandardMaterial color="#00ff00" transparent opacity={0.7} />
-      </Box>
-      <Box args={[1, 0.5, 3]} position={[-20, 1, 0]}>
-        <meshStandardMaterial color="#00ff00" transparent opacity={0.7} />
-      </Box>
-      
-      {/* Ligne de départ/arrivée */}
-      <Box args={[4, 0.5, 1]} position={[0, 1, 0]}>
+      {/* Lignes blanches sur la piste */}
+      <Torus args={[18, 0.1, 4, 30]} position={[0, 0.1, 0]} rotation={[Math.PI/2, 0, 0]}>
         <meshStandardMaterial color="#ffffff" />
-      </Box>
+      </Torus>
+      <Torus args={[16, 0.1, 4, 30]} position={[0, 0.1, 0]} rotation={[Math.PI/2, 0, 0]}>
+        <meshStandardMaterial color="#ffffff" />
+      </Torus>
+      <Torus args={[20, 0.1, 4, 30]} position={[0, 0.1, 0]} rotation={[Math.PI/2, 0, 0]}>
+        <meshStandardMaterial color="#ffffff" />
+      </Torus>
+      
+      {/* Bordures de sécurité */}
+      <Torus args={[14, 0.5, 8, 30]} position={[0, 0.5, 0]} rotation={[Math.PI/2, 0, 0]}>
+        <meshStandardMaterial color="#ff0000" />
+      </Torus>
+      <Torus args={[22, 0.5, 8, 30]} position={[0, 0.5, 0]} rotation={[Math.PI/2, 0, 0]}>
+        <meshStandardMaterial color="#ff0000" />
+      </Torus>
+      
+      {/* Herbe autour de la piste */}
+      <Cylinder args={[30, 30, 0.2]} position={[0, -0.2, 0]}>
+        <meshStandardMaterial color="#228B22" />
+      </Cylinder>
+      
+      {/* Arbres décoratifs */}
+      {Array.from({ length: 8 }).map((_, i) => {
+        const angle = (i / 8) * Math.PI * 2;
+        const radius = 28;
+        const x = Math.cos(angle) * radius;
+        const z = Math.sin(angle) * radius;
+        return (
+          <group key={i} position={[x, 0, z]}>
+            {/* Tronc */}
+            <Cylinder args={[0.3, 0.4, 3]} position={[0, 1.5, 0]}>
+              <meshStandardMaterial color="#8B4513" />
+            </Cylinder>
+            {/* Feuillage */}
+            <Box args={[2, 2, 2]} position={[0, 3.5, 0]}>
+              <meshStandardMaterial color="#006400" />
+            </Box>
+          </group>
+        );
+      })}
+      
+      {/* Panneaux publicitaires */}
+      {Array.from({ length: 4 }).map((_, i) => {
+        const positions = [[25, 2, 0], [0, 2, 25], [-25, 2, 0], [0, 2, -25]];
+        const rotations = [[0, -Math.PI/2, 0], [0, 0, 0], [0, Math.PI/2, 0], [0, Math.PI, 0]];
+        return (
+          <group key={i} position={positions[i]} rotation={rotations[i]}>
+            <Box args={[6, 3, 0.2]}>
+              <meshStandardMaterial color="#0066ff" />
+            </Box>
+            <Plane args={[5, 2]} position={[0, 0, 0.15]}>
+              <meshStandardMaterial color="#ffffff" />
+            </Plane>
+          </group>
+        );
+      })}
+      
+      {/* Checkpoints lumineux */}
+      <group>
+        {/* Checkpoint 1 (haut) */}
+        <Box args={[3, 2, 0.5]} position={[0, 2, 18]}>
+          <meshStandardMaterial color="#00ff00" emissive="#004400" />
+        </Box>
+        {/* Checkpoint 2 (droite) */}
+        <Box args={[0.5, 2, 3]} position={[18, 2, 0]}>
+          <meshStandardMaterial color="#00ff00" emissive="#004400" />
+        </Box>
+        {/* Checkpoint 3 (bas) */}
+        <Box args={[3, 2, 0.5]} position={[0, 2, -18]}>
+          <meshStandardMaterial color="#00ff00" emissive="#004400" />
+        </Box>
+        {/* Checkpoint 4 (gauche) */}
+        <Box args={[0.5, 2, 3]} position={[-18, 2, 0]}>
+          <meshStandardMaterial color="#00ff00" emissive="#004400" />
+        </Box>
+      </group>
+      
+      {/* Ligne de départ/arrivée avec damier */}
+      <group position={[0, 0.1, 0]}>
+        <Box args={[4, 0.1, 1]} position={[0, 0, 0]}>
+          <meshStandardMaterial color="#ffffff" />
+        </Box>
+        {/* Motif damier */}
+        {Array.from({ length: 8 }).map((_, i) => (
+          <Box key={i} args={[0.4, 0.12, 0.8]} position={[-1.6 + i * 0.4, 0, 0]}>
+            <meshStandardMaterial color={i % 2 === 0 ? "#000000" : "#ffffff"} />
+          </Box>
+        ))}
+      </group>
+      
+      {/* Éclairage de la piste */}
+      {Array.from({ length: 6 }).map((_, i) => {
+        const angle = (i / 6) * Math.PI * 2;
+        const radius = 24;
+        const x = Math.cos(angle) * radius;
+        const z = Math.sin(angle) * radius;
+        return (
+          <group key={i} position={[x, 4, z]}>
+            <Cylinder args={[0.1, 0.1, 4]} position={[0, 0, 0]}>
+              <meshStandardMaterial color="#666666" />
+            </Cylinder>
+            <Box args={[0.5, 0.5, 0.5]} position={[0, 2.5, 0]}>
+              <meshStandardMaterial color="#ffff00" emissive="#444400" />
+            </Box>
+            <pointLight position={[0, 2, 0]} intensity={0.5} color="#ffff88" />
+          </group>
+        );
+      })}
     </group>
   );
 }
@@ -225,35 +336,56 @@ function UI({ currentLap, totalLaps, gameWon, raceTime }: any) {
       fontFamily: 'Arial, sans-serif',
       fontSize: '16px',
       zIndex: 1000,
-      background: 'rgba(0,0,0,0.7)',
+      background: 'rgba(0,0,0,0.8)',
       padding: '20px',
       borderRadius: '15px',
-      minWidth: '250px'
+      minWidth: '280px',
+      border: '2px solid #ffdd00'
     }}>
-      <h3 style={{ margin: '0 0 15px 0', color: '#ffdd00' }}>🏁 Piste Low Poly</h3>
+      <h3 style={{ margin: '0 0 15px 0', color: '#ffdd00', textAlign: 'center' }}>
+        🏁 Circuit F1 - Low Poly
+      </h3>
       
-      <div style={{ fontSize: '20px', marginBottom: '10px', color: '#00ff88' }}>
+      <div style={{ 
+        fontSize: '24px', 
+        marginBottom: '10px', 
+        color: '#00ff88',
+        textAlign: 'center',
+        fontWeight: 'bold'
+      }}>
         Tour: {currentLap}/{totalLaps}
       </div>
       
-      <div style={{ marginBottom: '15px', color: '#88ddff' }}>
-        Temps: {Math.floor(raceTime / 1000)}s
+      <div style={{ 
+        marginBottom: '15px', 
+        color: '#88ddff',
+        textAlign: 'center',
+        fontSize: '18px'
+      }}>
+        ⏱️ Temps: {Math.floor(raceTime / 1000)}s
       </div>
       
       {gameWon && (
         <div style={{ 
-          fontSize: '24px', 
+          fontSize: '28px', 
           color: '#ffdd00', 
           fontWeight: 'bold',
           marginBottom: '15px',
-          animation: 'blink 1s infinite'
+          textAlign: 'center',
+          animation: 'blink 1s infinite',
+          textShadow: '2px 2px 4px rgba(0,0,0,0.8)'
         }}>
           🏆 VICTOIRE ! 🏆
         </div>
       )}
       
-      <div style={{ fontSize: '14px', borderTop: '1px solid #666', paddingTop: '10px' }}>
-        <div>🎮 Contrôles:</div>
+      <div style={{ 
+        fontSize: '14px', 
+        borderTop: '1px solid #666', 
+        paddingTop: '10px',
+        color: '#cccccc'
+      }}>
+        <div style={{ marginBottom: '5px', color: '#ffdd00' }}>🎮 Contrôles:</div>
         <div>↑/W - Accélérer</div>
         <div>↓/S - Freiner</div>
         <div>←/A - Tourner à gauche</div>
@@ -324,18 +456,25 @@ const Block: React.FC<BlockProps> = ({ title, description }) => {
       />
       
       <Canvas
-        camera={{ position: [0, 12, 15], fov: 75 }}
-        style={{ background: 'linear-gradient(to top, #87CEEB, #98FB98)' }}
+        camera={{ position: [0, 15, 20], fov: 75 }}
+        style={{ background: 'linear-gradient(to top, #87CEEB 0%, #98FB98 50%, #FFE4B5 100%)' }}
       >
-        {/* Éclairage */}
-        <ambientLight intensity={0.6} />
-        <directionalLight position={[15, 15, 10]} intensity={1.2} />
+        {/* Éclairage amélioré */}
+        <ambientLight intensity={0.4} />
+        <directionalLight 
+          position={[20, 20, 10]} 
+          intensity={1.5} 
+          castShadow
+          shadow-mapSize-width={2048}
+          shadow-mapSize-height={2048}
+        />
         <directionalLight position={[-15, 15, -10]} intensity={0.8} />
+        <pointLight position={[0, 10, 0]} intensity={0.5} color="#ffffff" />
         
-        {/* Votre piste 3D */}
+        {/* Piste 3D procédurale */}
         <RaceTrack />
         
-        {/* Voiture - Position légèrement surélevée */}
+        {/* Voiture améliorée */}
         <Car 
           position={[0, 1, 0]} 
           rotation={Math.PI}
