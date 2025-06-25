@@ -535,7 +535,7 @@ function RaceTrack() {
         );
       })}
       
-      {/* Checkpoints - ORDRE CORRIGÉ POUR LE SENS DE CIRCULATION */}
+      {/* Checkpoints - SANS PANNEAUX BLANCS, SEULEMENT LES LIGNES COLORÉES */}
       <group>
         {/* Checkpoint 1 (DROITE) - Premier checkpoint dans le sens de circulation */}
         <group position={[180, 0.3, 0]}>
@@ -548,10 +548,6 @@ function RaceTrack() {
               <meshStandardMaterial color={i % 2 === 0 ? "#00ff00" : "#00cc00"} emissive="#002200" />
             </Box>
           ))}
-          {/* Panneau indicateur CHECKPOINT 1 */}
-          <Box args={[10, 8, 1]} position={[0, 8, 10]}>
-            <meshStandardMaterial color="#ffffff" />
-          </Box>
         </group>
         
         {/* Checkpoint 2 (HAUT) - Deuxième checkpoint */}
@@ -565,10 +561,6 @@ function RaceTrack() {
               <meshStandardMaterial color={i % 2 === 0 ? "#ffff00" : "#ffcc00"} emissive="#222200" />
             </Box>
           ))}
-          {/* Panneau indicateur CHECKPOINT 2 */}
-          <Box args={[10, 8, 1]} position={[10, 8, 0]}>
-            <meshStandardMaterial color="#ffffff" />
-          </Box>
         </group>
         
         {/* Checkpoint 3 (GAUCHE) - Troisième checkpoint */}
@@ -582,14 +574,10 @@ function RaceTrack() {
               <meshStandardMaterial color={i % 2 === 0 ? "#ff8800" : "#ff6600"} emissive="#221100" />
             </Box>
           ))}
-          {/* Panneau indicateur CHECKPOINT 3 */}
-          <Box args={[10, 8, 1]} position={[0, 8, 10]}>
-            <meshStandardMaterial color="#ffffff" />
-          </Box>
         </group>
       </group>
       
-      {/* Ligne de départ/arrivée avec damier - PERPENDICULAIRE À LA ROUTE (côté sud) */}
+      {/* Ligne de départ/arrivée avec damier - GARDE LE PANNEAU POUR LA LIGNE D'ARRIVÉE */}
       <group position={[0, 0.4, -180]} rotation={[0, 0, 0]}>
         {/* Ligne d'arrivée perpendiculaire qui traverse toute la largeur de la piste */}
         <Box args={[3, 0.2, 80]} position={[0, 0, 0]}>
@@ -601,7 +589,7 @@ function RaceTrack() {
             <meshStandardMaterial color={i % 2 === 0 ? "#000000" : "#ffffff"} />
           </Box>
         ))}
-        {/* Panneau DÉPART/ARRIVÉE */}
+        {/* Panneau DÉPART/ARRIVÉE - GARDÉ pour la ligne d'arrivée */}
         <Box args={[15, 10, 1]} position={[0, 10, 15]}>
           <meshStandardMaterial color="#ffffff" />
         </Box>
@@ -701,7 +689,7 @@ function UI({ currentLap, totalLaps, gameWon, raceTime, cameraMode, onCameraMode
       border: '2px solid #ffdd00'
     }}>
       <h3 style={{ margin: '0 0 15px 0', color: '#ffdd00', textAlign: 'center' }}>
-        🏁 Circuit F1 - SUR LA PISTE !
+        🏁 Circuit F1 - CHECKPOINTS ÉPURÉS
       </h3>
       
       <div style={{ 
@@ -802,10 +790,10 @@ function UI({ currentLap, totalLaps, gameWon, raceTime, cameraMode, onCameraMode
         <div>←/A - Tourner à gauche</div>
         <div>→/D - Tourner à droite</div>
         <div style={{ marginTop: '10px', color: '#88ddff' }}>
-          🚗 Voiture positionnée sur la ligne d'arrivée !
+          🟢 1️⃣ Droite → 🟡 2️⃣ Haut → 🟠 3️⃣ Gauche → 🏁 Arrivée
         </div>
         <div style={{ color: '#88ddff' }}>
-          🟢 1️⃣ Droite → 🟡 2️⃣ Haut → 🟠 3️⃣ Gauche → 🏁 Arrivée
+          Checkpoints : seulement les lignes colorées au sol !
         </div>
       </div>
     </div>
@@ -815,7 +803,6 @@ function UI({ currentLap, totalLaps, gameWon, raceTime, cameraMode, onCameraMode
 const Block: React.FC<BlockProps> = ({ title, description }) => {
   const [gameStarted, setGameStarted] = useState(false);
   // POSITION DE DÉPART CORRIGÉE : Sur la piste circulaire à la ligne d'arrivée
-  // La piste circulaire a un rayon de 180, donc à z = -180, x = 0
   const [carPosition, setCarPosition] = useState([0, 1, -180]); // Exactement sur la ligne d'arrivée (piste circulaire)
   const [carRotation, setCarRotation] = useState(Math.PI / 2); // 90° pour regarder vers la droite (checkpoint 1)
   const [currentLap, setCurrentLap] = useState(0);
