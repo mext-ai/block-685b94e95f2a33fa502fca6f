@@ -9,7 +9,7 @@ interface BlockProps {
 }
 
 // Composant de la voiture
-function Car({ position, rotation, onPositionChange, onLapComplete }: any) {
+function Car({ position, rotation, onPositionChange, onLapComplete, onRotationChange }: any) {
   const carRef = useRef<THREE.Group>(null);
   const [carPosition, setCarPosition] = useState(position);
   const [carRotation, setCarRotation] = useState(rotation);
@@ -140,6 +140,7 @@ function Car({ position, rotation, onPositionChange, onLapComplete }: any) {
     }
 
     onPositionChange(newPosition);
+    onRotationChange(newRotation);
   });
 
   return (
@@ -334,7 +335,7 @@ function RaceTrack() {
             </Box>
             <Plane args={[25, 10]} position={[0, 0, 0.6]}>
               <meshStandardMaterial color="#ffffff" />
-            </Plane>
+            </Box>
           </group>
         );
       })}
@@ -394,38 +395,62 @@ function RaceTrack() {
   );
 }
 
-// Caméra contrôlable avec OrbitControls
-function ControllableCamera({ carPosition }: { carPosition: number[] }) {
-  const controlsRef = useRef<any>();
+// Caméra qui suit automatiquement la voiture (troisième personne)
+function FollowCamera({ carPosition, carRotation, cameraMode }: { carPosition: number[], carRotation: number, cameraMode: string }) {
   const { camera } = useThree();
   
   useFrame(() => {
-    // Suivre la voiture comme point de référence
-    const targetPosition = new THREE.Vector3(carPosition[0], carPosition[1], carPosition[2]);
+    const carX = carPosition[0];
+    const carY = carPosition[1];
+    const carZ = carPosition[2];
     
-    // Mettre à jour la cible des contrôles pour suivre la voiture
-    if (controlsRef.current) {
-      controlsRef.current.target.lerp(targetPosition, 0.02);
+    if (cameraMode === 'follow') {
+      // Caméra de suivi (troisième personne)
+      const distance = 25;
+      const height = 15;
+      
+      // Position de la caméra derrière la voiture
+      const cameraX = carX - Math.sin(carRotation) * distance;
+      const cameraY = carY + height;
+      const cameraZ = carZ - Math.cos(carRotation) * distance;
+      
+      // Position cible (devant la voiture)
+      const targetX = carX + Math.sin(carRotation) * 10;
+      const targetY = carY + 2;
+      const targetZ = carZ + Math.cos(carRotation) * 10;
+      
+      // Interpolation fluide pour éviter les mouvements brusques
+      camera.position.lerp(new THREE.Vector3(cameraX, cameraY, cameraZ), 0.1);
+      camera.lookAt(new THREE.Vector3(targetX, targetY, targetZ));
+    } else if (cameraMode === 'cockpit') {
+      // Vue cockpit (première personne)
+      const offsetY = 2;
+      const offsetZ = 1;
+      
+      const cockpitX = carX + Math.sin(carRotation) * offsetZ;
+      const cockpitY = carY + offsetY;
+      const cockpitZ = carZ + Math.cos(carRotation) * offsetZ;
+      
+      // Position cible devant la voiture
+      const targetX = carX + Math.sin(carRotation) * 20;
+      const targetY = carY + 1;
+      const targetZ = carZ + Math.cos(carRotation) * 20;
+      
+      camera.position.lerp(new THREE.Vector3(cockpitX, cockpitY, cockpitZ), 0.15);
+      camera.lookAt(new THREE.Vector3(targetX, targetY, targetZ));
+    } else if (cameraMode === 'aerial') {
+      // Vue aérienne
+      const height = 40;
+      camera.position.lerp(new THREE.Vector3(carX, carY + height, carZ), 0.05);
+      camera.lookAt(new THREE.Vector3(carX, carY, carZ));
     }
   });
 
-  return (
-    <OrbitControls
-      ref={controlsRef}
-      enablePan={true}
-      enableZoom={true}
-      enableRotate={true}
-      minDistance={10}
-      maxDistance={200}
-      minPolarAngle={0}
-      maxPolarAngle={Math.PI / 2}
-      target={[carPosition[0], carPosition[1], carPosition[2]]}
-    />
-  );
+  return null;
 }
 
-// Interface utilisateur avec compteur de tours
-function UI({ currentLap, totalLaps, gameWon, raceTime }: any) {
+// Interface utilisateur avec compteur de tours et sélecteur de caméra
+function UI({ currentLap, totalLaps, gameWon, raceTime, cameraMode, onCameraModeChange }: any) {
   return (
     <div style={{
       position: 'absolute',
@@ -442,7 +467,7 @@ function UI({ currentLap, totalLaps, gameWon, raceTime }: any) {
       border: '2px solid #ffdd00'
     }}>
       <h3 style={{ margin: '0 0 15px 0', color: '#ffdd00', textAlign: 'center' }}>
-        🏁 Circuit F1 - PISTE PLATE
+        🏁 Circuit F1 - CAMÉRA VERROUILLÉE
       </h3>
       
       <div style={{ 
@@ -462,6 +487,59 @@ function UI({ currentLap, totalLaps, gameWon, raceTime }: any) {
         fontSize: '18px'
       }}>
         ⏱️ Temps: {Math.floor(raceTime / 1000)}s
+      </div>
+      
+      {/* Sélecteur de mode de caméra */}
+      <div style={{ 
+        marginBottom: '15px', 
+        borderTop: '1px solid #666', 
+        paddingTop: '10px' 
+      }}>
+        <div style={{ marginBottom: '8px', color: '#ffdd00' }}>📷 Mode Caméra:</div>
+        <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+          <button 
+            onClick={() => onCameraModeChange('follow')}
+            style={{
+              background: cameraMode === 'follow' ? '#ffdd00' : '#333',
+              color: cameraMode === 'follow' ? '#000' : '#fff',
+              border: 'none',
+              padding: '4px 8px',
+              borderRadius: '4px',
+              fontSize: '12px',
+              cursor: 'pointer'
+            }}
+          >
+            Suivi
+          </button>
+          <button 
+            onClick={() => onCameraModeChange('cockpit')}
+            style={{
+              background: cameraMode === 'cockpit' ? '#ffdd00' : '#333',
+              color: cameraMode === 'cockpit' ? '#000' : '#fff',
+              border: 'none',
+              padding: '4px 8px',
+              borderRadius: '4px',
+              fontSize: '12px',
+              cursor: 'pointer'
+            }}
+          >
+            Cockpit
+          </button>
+          <button 
+            onClick={() => onCameraModeChange('aerial')}
+            style={{
+              background: cameraMode === 'aerial' ? '#ffdd00' : '#333',
+              color: cameraMode === 'aerial' ? '#000' : '#fff',
+              border: 'none',
+              padding: '4px 8px',
+              borderRadius: '4px',
+              fontSize: '12px',
+              cursor: 'pointer'
+            }}
+          >
+            Aérienne
+          </button>
+        </div>
       </div>
       
       {gameWon && (
@@ -490,10 +568,10 @@ function UI({ currentLap, totalLaps, gameWon, raceTime }: any) {
         <div>←/A - Tourner à gauche</div>
         <div>→/D - Tourner à droite</div>
         <div style={{ marginTop: '10px', color: '#88ddff' }}>
-          🎥 Caméra: Clic + Glisser pour tourner
+          🎥 Caméra suit automatiquement la voiture
         </div>
         <div style={{ color: '#88ddff' }}>
-          🔍 Molette: Zoom in/out
+          Changez le mode de vue avec les boutons
         </div>
       </div>
     </div>
@@ -502,11 +580,13 @@ function UI({ currentLap, totalLaps, gameWon, raceTime }: any) {
 
 const Block: React.FC<BlockProps> = ({ title, description }) => {
   const [carPosition, setCarPosition] = useState([0, 1, 0]);
+  const [carRotation, setCarRotation] = useState(Math.PI);
   const [currentLap, setCurrentLap] = useState(0);
   const [totalLaps] = useState(3);
   const [gameWon, setGameWon] = useState(false);
   const [startTime] = useState(Date.now());
   const [raceTime, setRaceTime] = useState(0);
+  const [cameraMode, setCameraMode] = useState('follow'); // 'follow', 'cockpit', 'aerial'
 
   const handleLapComplete = () => {
     if (!gameWon) {
@@ -558,6 +638,8 @@ const Block: React.FC<BlockProps> = ({ title, description }) => {
         totalLaps={totalLaps} 
         gameWon={gameWon}
         raceTime={raceTime}
+        cameraMode={cameraMode}
+        onCameraModeChange={setCameraMode}
       />
       
       <Canvas
@@ -584,11 +666,16 @@ const Block: React.FC<BlockProps> = ({ title, description }) => {
           position={[0, 1, 0]} 
           rotation={Math.PI}
           onPositionChange={setCarPosition}
+          onRotationChange={setCarRotation}
           onLapComplete={handleLapComplete}
         />
         
-        {/* Caméra contrôlable */}
-        <ControllableCamera carPosition={carPosition} />
+        {/* Caméra qui suit automatiquement la voiture */}
+        <FollowCamera 
+          carPosition={carPosition} 
+          carRotation={carRotation}
+          cameraMode={cameraMode}
+        />
       </Canvas>
     </div>
   );
