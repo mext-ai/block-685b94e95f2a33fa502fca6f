@@ -760,7 +760,7 @@ function UI({ currentLap, totalLaps, gameWon, raceTime, cameraMode, onCameraMode
 const Block: React.FC<BlockProps> = ({ title, description }) => {
   const [gameStarted, setGameStarted] = useState(false);
   const [carPosition, setCarPosition] = useState([0, 1, -210]); // Position CORRIGÉE : centrée sur la piste circulaire
-  const [carRotation, setCarRotation] = useState(Math.PI / 2); // ROTATION CORRIGÉE : 90° pour être perpendiculaire à la ligne d'arrivée
+  const [carRotation, setCarRotation] = useState(-Math.PI / 2); // ROTATION CORRIGÉE : -90° pour démarrer dans le bon sens
   const [currentLap, setCurrentLap] = useState(0);
   const [totalLaps] = useState(3);
   const [gameWon, setGameWon] = useState(false);
@@ -854,7 +854,7 @@ const Block: React.FC<BlockProps> = ({ title, description }) => {
         {/* Voiture améliorée */}
         <Car 
           position={[0, 1, -210]} 
-          rotation={Math.PI / 2}
+          rotation={-Math.PI / 2}
           onPositionChange={setCarPosition}
           onRotationChange={setCarRotation}
           onLapComplete={handleLapComplete}
