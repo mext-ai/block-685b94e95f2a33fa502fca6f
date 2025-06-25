@@ -63,7 +63,7 @@ function Car({ position, rotation, onPositionChange, onLapComplete, onRotationCh
       newCheckpoints.checkpoint4 = true;
     }
     
-    // Ligne d'arrivée (tour complet) - DÉPLACÉE SUR LA ROUTE (côté sud)
+    // Ligne d'arrivée (tour complet) - PERPENDICULAIRE À LA ROUTE (côté sud)
     if (z < -150 && z > -200 && Math.abs(x) < 50 && 
         checkpoints.checkpoint1 && checkpoints.checkpoint2 && 
         checkpoints.checkpoint3 && checkpoints.checkpoint4) {
@@ -360,22 +360,23 @@ function RaceTrack() {
         </Box>
       </group>
       
-      {/* Ligne de départ/arrivée avec damier - DÉPLACÉE SUR LA ROUTE (côté sud) */}
+      {/* Ligne de départ/arrivée avec damier - PERPENDICULAIRE À LA ROUTE (côté sud) */}
       <group position={[0, 0.4, -180]} rotation={[0, 0, 0]}>
-        <Box args={[40, 0.1, 10]} position={[0, 0, 0]}>
+        {/* Ligne d'arrivée perpendiculaire qui traverse toute la largeur de la piste */}
+        <Box args={[3, 0.2, 60]} position={[0, 0, 0]}>
           <meshStandardMaterial color="#ffffff" />
         </Box>
-        {/* Motif damier */}
-        {Array.from({ length: 20 }).map((_, i) => (
-          <Box key={i} args={[2, 0.2, 8]} position={[-20 + i * 2, 0, 0]}>
+        {/* Motif damier perpendiculaire - traverse toute la largeur */}
+        {Array.from({ length: 15 }).map((_, i) => (
+          <Box key={i} args={[2, 0.3, 4]} position={[0, 0, -30 + i * 4]}>
             <meshStandardMaterial color={i % 2 === 0 ? "#000000" : "#ffffff"} />
           </Box>
         ))}
         {/* Panneau "START/FINISH" au-dessus de la ligne */}
-        <Box args={[50, 8, 2]} position={[0, 8, 0]}>
+        <Box args={[8, 50, 2]} position={[0, 8, 0]} rotation={[0, Math.PI/2, 0]}>
           <meshStandardMaterial color="#ffdd00" emissive="#443300" />
         </Box>
-        <Plane args={[45, 6]} position={[0, 8, 1.1]}>
+        <Plane args={[6, 45]} position={[0, 8, 1.1]} rotation={[0, Math.PI/2, 0]}>
           <meshStandardMaterial color="#000000" />
         </Plane>
       </group>
