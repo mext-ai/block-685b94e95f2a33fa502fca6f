@@ -164,7 +164,7 @@ function StartMenu({ onStartGame }: { onStartGame: () => void }) {
   );
 }
 
-// Composant de la voiture
+// Composant de la voiture avec SYSTÈME DE COLLISION
 function Car({ position, rotation, onPositionChange, onLapComplete, onRotationChange }: any) {
   const carRef = useRef<THREE.Group>(null);
   const [carPosition, setCarPosition] = useState(position);
@@ -201,6 +201,42 @@ function Car({ position, rotation, onPositionChange, onLapComplete, onRotationCh
       window.removeEventListener('keyup', handleKeyUp);
     };
   }, []);
+
+  // SYSTÈME DE COLLISION AVEC LES BARRIÈRES
+  const checkBarrierCollisions = (newPos: number[]) => {
+    const x = newPos[0];
+    const z = newPos[2];
+    const carRadius = 3; // Rayon de collision de la voiture
+    
+    // Calculer la distance du centre (0,0)
+    const distanceFromCenter = Math.sqrt(x * x + z * z);
+    
+    // COLLISION AVEC BARRIÈRE EXTÉRIEURE (rayon ~235)
+    if (distanceFromCenter > 235 - carRadius) {
+      // Calculer la direction vers le centre
+      const angle = Math.atan2(z, x);
+      const maxDistance = 235 - carRadius;
+      return [
+        Math.cos(angle) * maxDistance,
+        newPos[1],
+        Math.sin(angle) * maxDistance
+      ];
+    }
+    
+    // COLLISION AVEC BARRIÈRE INTÉRIEURE (rayon ~145)
+    if (distanceFromCenter < 145 + carRadius) {
+      // Calculer la direction vers l'extérieur
+      const angle = Math.atan2(z, x);
+      const minDistance = 145 + carRadius;
+      return [
+        Math.cos(angle) * minDistance,
+        newPos[1],
+        Math.sin(angle) * minDistance
+      ];
+    }
+    
+    return newPos; // Pas de collision
+  };
 
   // LOGIQUE DE DÉTECTION AVEC ORDRE CORRIGÉ : DROITE → HAUT → GAUCHE → ARRIVÉE
   const checkLapProgress = (pos: number[]) => {
@@ -303,23 +339,24 @@ function Car({ position, rotation, onPositionChange, onLapComplete, onRotationCh
     newVelocity.x *= 0.92;
     newVelocity.z *= 0.92;
 
-    // Mise à jour de la position
-    const newPosition = [
+    // Calcul de la nouvelle position
+    let newPosition = [
       carPosition[0] + newVelocity.x,
       carPosition[1],
       carPosition[2] + newVelocity.z
     ];
 
-    // Limites de la piste
-    const trackLimit = 250;
-    if (Math.abs(newPosition[0]) > trackLimit) {
-      newPosition[0] = carPosition[0];
-      newVelocity.x *= -0.3;
+    // VÉRIFIER LES COLLISIONS AVEC LES BARRIÈRES
+    const collisionCheckedPosition = checkBarrierCollisions(newPosition);
+    
+    // Si il y a eu collision, réduire la vitesse
+    if (collisionCheckedPosition[0] !== newPosition[0] || collisionCheckedPosition[2] !== newPosition[2]) {
+      newVelocity.x *= 0.1; // Forte réduction de vitesse lors d'une collision
+      newVelocity.z *= 0.1;
+      console.log("💥 COLLISION avec barrière !");
     }
-    if (Math.abs(newPosition[2]) > trackLimit) {
-      newPosition[2] = carPosition[2];
-      newVelocity.z *= -0.3;
-    }
+    
+    newPosition = collisionCheckedPosition;
 
     setCarPosition(newPosition);
     setCarRotation(newRotation);
@@ -382,7 +419,7 @@ function Car({ position, rotation, onPositionChange, onLapComplete, onRotationCh
   );
 }
 
-// Piste 3D procédurale GÉANTE et COMPLÈTEMENT PLATE
+// Piste 3D avec BARRIÈRES DE SÉCURITÉ et COLLISIONS
 function RaceTrack() {
   // Créer la piste circulaire avec des segments droits
   const createCircularTrack = () => {
@@ -410,6 +447,68 @@ function RaceTrack() {
     return segments;
   };
 
+  // CRÉER LES BARRIÈRES DE SÉCURITÉ
+  const createSafetyBarriers = () => {
+    const barriers = [];
+    const numBarriers = 80;
+    
+    // BARRIÈRES EXTÉRIEURES (rayon 235)
+    for (let i = 0; i < numBarriers; i++) {
+      const angle = (i / numBarriers) * Math.PI * 2;
+      const x = Math.cos(angle) * 235;
+      const z = Math.sin(angle) * 235;
+      
+      barriers.push(
+        <group key={`outer-${i}`} position={[x, 0, z]} rotation={[0, angle, 0]}>
+          {/* Barrière principale */}
+          <Box args={[3, 4, 8]}>
+            <meshStandardMaterial color="#ff3333" metalness={0.3} roughness={0.7} />
+          </Box>
+          {/* Rayures de sécurité */}
+          <Box args={[3.2, 1, 8.2]} position={[0, 2, 0]}>
+            <meshStandardMaterial color="#ffffff" />
+          </Box>
+          <Box args={[3.2, 1, 8.2]} position={[0, 0, 0]}>
+            <meshStandardMaterial color="#ffffff" />
+          </Box>
+          {/* Support métallique */}
+          <Cylinder args={[0.2, 0.2, 4]} position={[0, 2, 0]}>
+            <meshStandardMaterial color="#666666" metalness={0.8} roughness={0.2} />
+          </Cylinder>
+        </group>
+      );
+    }
+    
+    // BARRIÈRES INTÉRIEURES (rayon 145)
+    for (let i = 0; i < numBarriers; i++) {
+      const angle = (i / numBarriers) * Math.PI * 2;
+      const x = Math.cos(angle) * 145;
+      const z = Math.sin(angle) * 145;
+      
+      barriers.push(
+        <group key={`inner-${i}`} position={[x, 0, z]} rotation={[0, angle + Math.PI, 0]}>
+          {/* Barrière principale */}
+          <Box args={[3, 4, 8]}>
+            <meshStandardMaterial color="#ff3333" metalness={0.3} roughness={0.7} />
+          </Box>
+          {/* Rayures de sécurité */}
+          <Box args={[3.2, 1, 8.2]} position={[0, 2, 0]}>
+            <meshStandardMaterial color="#ffffff" />
+          </Box>
+          <Box args={[3.2, 1, 8.2]} position={[0, 0, 0]}>
+            <meshStandardMaterial color="#ffffff" />
+          </Box>
+          {/* Support métallique */}
+          <Cylinder args={[0.2, 0.2, 4]} position={[0, 2, 0]}>
+            <meshStandardMaterial color="#666666" metalness={0.8} roughness={0.2} />
+          </Cylinder>
+        </group>
+      );
+    }
+    
+    return barriers;
+  };
+
   return (
     <group>
       {/* Surface de route plate principale */}
@@ -419,6 +518,9 @@ function RaceTrack() {
       
       {/* Piste circulaire avec segments */}
       {createCircularTrack()}
+      
+      {/* BARRIÈRES DE SÉCURITÉ AVEC COLLISIONS */}
+      {createSafetyBarriers()}
       
       {/* Lignes blanches centrales - Segments plats */}
       {Array.from({ length: 64 }).map((_, i) => {
@@ -468,27 +570,6 @@ function RaceTrack() {
           >
             <meshStandardMaterial color="#ffffff" />
           </Box>
-        );
-      })}
-      
-      {/* Bordures de sécurité PLATES */}
-      {Array.from({ length: 64 }).map((_, i) => {
-        const angle = (i / 64) * Math.PI * 2;
-        const xInner = Math.cos(angle) * 140;
-        const zInner = Math.sin(angle) * 140;
-        const xOuter = Math.cos(angle) * 220;
-        const zOuter = Math.sin(angle) * 220;
-        return (
-          <group key={i}>
-            {/* Bordure intérieure */}
-            <Box args={[6, 2, 6]} position={[xInner, 1, zInner]}>
-              <meshStandardMaterial color="#ff0000" />
-            </Box>
-            {/* Bordure extérieure */}
-            <Box args={[6, 2, 6]} position={[xOuter, 1, zOuter]}>
-              <meshStandardMaterial color="#ff0000" />
-            </Box>
-          </group>
         );
       })}
       
@@ -598,7 +679,7 @@ function RaceTrack() {
       {/* Éclairage de la piste - Plus de lampadaires */}
       {Array.from({ length: 20 }).map((_, i) => {
         const angle = (i / 20) * Math.PI * 2;
-        const radius = 240;
+        const radius = 260; // Déplacés plus loin pour laisser place aux barrières
         const x = Math.cos(angle) * radius;
         const z = Math.sin(angle) * radius;
         return (
@@ -689,7 +770,7 @@ function UI({ currentLap, totalLaps, gameWon, raceTime, cameraMode, onCameraMode
       border: '2px solid #ffdd00'
     }}>
       <h3 style={{ margin: '0 0 15px 0', color: '#ffdd00', textAlign: 'center' }}>
-        🏁 Circuit F1 Racing
+        🏁 Circuit F1 - AVEC BARRIÈRES
       </h3>
       
       <div style={{ 
@@ -789,6 +870,9 @@ function UI({ currentLap, totalLaps, gameWon, raceTime, cameraMode, onCameraMode
         <div>↓/S - Freiner</div>
         <div>←/A - Tourner à gauche</div>
         <div>→/D - Tourner à droite</div>
+        <div style={{ marginTop: '10px', color: '#ff6666' }}>
+          ⚠️ Attention aux barrières rouges !
+        </div>
       </div>
     </div>
   );
@@ -886,10 +970,10 @@ const Block: React.FC<BlockProps> = ({ title, description }) => {
         <directionalLight position={[-75, 75, -50]} intensity={0.8} />
         <pointLight position={[0, 50, 0]} intensity={1} color="#ffffff" />
         
-        {/* Piste 3D procédurale COMPLÈTEMENT PLATE */}
+        {/* Piste 3D avec BARRIÈRES DE SÉCURITÉ */}
         <RaceTrack />
         
-        {/* Voiture améliorée - POSITION SUR LA PISTE CIRCULAIRE */}
+        {/* Voiture avec SYSTÈME DE COLLISION */}
         <Car 
           position={[0, 1, -180]} 
           rotation={Math.PI / 2}
