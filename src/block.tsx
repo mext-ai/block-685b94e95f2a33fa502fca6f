@@ -701,7 +701,7 @@ function UI({ currentLap, totalLaps, gameWon, raceTime, cameraMode, onCameraMode
       border: '2px solid #ffdd00'
     }}>
       <h3 style={{ margin: '0 0 15px 0', color: '#ffdd00', textAlign: 'center' }}>
-        🏁 Circuit F1 - POSITION PARFAITE
+        🏁 Circuit F1 - SUR LA PISTE !
       </h3>
       
       <div style={{ 
@@ -802,7 +802,7 @@ function UI({ currentLap, totalLaps, gameWon, raceTime, cameraMode, onCameraMode
         <div>←/A - Tourner à gauche</div>
         <div>→/D - Tourner à droite</div>
         <div style={{ marginTop: '10px', color: '#88ddff' }}>
-          🏁 Ligne d'arrivée dans le dos, checkpoint 1 devant !
+          🚗 Voiture positionnée sur la ligne d'arrivée !
         </div>
         <div style={{ color: '#88ddff' }}>
           🟢 1️⃣ Droite → 🟡 2️⃣ Haut → 🟠 3️⃣ Gauche → 🏁 Arrivée
@@ -814,8 +814,9 @@ function UI({ currentLap, totalLaps, gameWon, raceTime, cameraMode, onCameraMode
 
 const Block: React.FC<BlockProps> = ({ title, description }) => {
   const [gameStarted, setGameStarted] = useState(false);
-  // POSITION DE DÉPART PARFAITE : Juste après la ligne d'arrivée, face au checkpoint 1
-  const [carPosition, setCarPosition] = useState([0, 1, -130]); // Un peu plus près de la ligne d'arrivée
+  // POSITION DE DÉPART CORRIGÉE : Sur la piste circulaire à la ligne d'arrivée
+  // La piste circulaire a un rayon de 180, donc à z = -180, x = 0
+  const [carPosition, setCarPosition] = useState([0, 1, -180]); // Exactement sur la ligne d'arrivée (piste circulaire)
   const [carRotation, setCarRotation] = useState(Math.PI / 2); // 90° pour regarder vers la droite (checkpoint 1)
   const [currentLap, setCurrentLap] = useState(0);
   const [totalLaps] = useState(3);
@@ -907,9 +908,9 @@ const Block: React.FC<BlockProps> = ({ title, description }) => {
         {/* Piste 3D procédurale COMPLÈTEMENT PLATE */}
         <RaceTrack />
         
-        {/* Voiture améliorée - POSITION DE DÉPART PARFAITE */}
+        {/* Voiture améliorée - POSITION SUR LA PISTE CIRCULAIRE */}
         <Car 
-          position={[0, 1, -130]} 
+          position={[0, 1, -180]} 
           rotation={Math.PI / 2}
           onPositionChange={setCarPosition}
           onRotationChange={setCarRotation}
