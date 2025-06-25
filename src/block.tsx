@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, Box, Plane, Text } from '@react-three/drei';
+import { OrbitControls, Box, Plane, Text, useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 
 interface BlockProps {
@@ -40,31 +40,31 @@ function Car({ position, rotation, onPositionChange, onLapComplete }: any) {
     };
   }, []);
 
-  // Fonction pour vérifier les checkpoints
+  // Fonction pour vérifier les checkpoints (adaptée pour la piste circulaire)
   const checkCheckpoints = (pos: number[]) => {
     const x = pos[0];
     const z = pos[2];
     let newCheckpoints = { ...checkpoints };
     
     // Checkpoint 1 (haut de la piste)
-    if (z > 8 && Math.abs(x) < 3 && !checkpoints.checkpoint1) {
+    if (z > 15 && Math.abs(x) < 5 && !checkpoints.checkpoint1) {
       newCheckpoints.checkpoint1 = true;
     }
     // Checkpoint 2 (droite de la piste)
-    if (x > 8 && Math.abs(z) < 3 && checkpoints.checkpoint1 && !checkpoints.checkpoint2) {
+    if (x > 15 && Math.abs(z) < 5 && checkpoints.checkpoint1 && !checkpoints.checkpoint2) {
       newCheckpoints.checkpoint2 = true;
     }
     // Checkpoint 3 (bas de la piste)
-    if (z < -8 && Math.abs(x) < 3 && checkpoints.checkpoint2 && !checkpoints.checkpoint3) {
+    if (z < -15 && Math.abs(x) < 5 && checkpoints.checkpoint2 && !checkpoints.checkpoint3) {
       newCheckpoints.checkpoint3 = true;
     }
     // Checkpoint 4 (gauche de la piste)
-    if (x < -8 && Math.abs(z) < 3 && checkpoints.checkpoint3 && !checkpoints.checkpoint4) {
+    if (x < -15 && Math.abs(z) < 5 && checkpoints.checkpoint3 && !checkpoints.checkpoint4) {
       newCheckpoints.checkpoint4 = true;
     }
     
     // Ligne d'arrivée (tour complet)
-    if (z > -2 && z < 2 && Math.abs(x) < 3 && 
+    if (z > -5 && z < 5 && Math.abs(x) < 5 && 
         checkpoints.checkpoint1 && checkpoints.checkpoint2 && 
         checkpoints.checkpoint3 && checkpoints.checkpoint4) {
       // Tour complet !
@@ -83,7 +83,7 @@ function Car({ position, rotation, onPositionChange, onLapComplete }: any) {
   useFrame(() => {
     if (!carRef.current) return;
 
-    const speed = 0.08;
+    const speed = 0.1;
     const rotationSpeed = 0.04;
     let newVelocity = { ...velocity };
     let newRotation = carRotation;
@@ -96,7 +96,7 @@ function Car({ position, rotation, onPositionChange, onLapComplete }: any) {
       newRotation -= rotationSpeed;
     }
 
-    // Contrôles d'accélération - CORRIGÉ
+    // Contrôles d'accélération
     if (keysPressed.current['ArrowUp'] || keysPressed.current['KeyW']) {
       newVelocity.x += Math.sin(newRotation) * speed;
       newVelocity.z += Math.cos(newRotation) * speed;
@@ -117,15 +117,15 @@ function Car({ position, rotation, onPositionChange, onLapComplete }: any) {
       carPosition[2] + newVelocity.z
     ];
 
-    // Limites de la piste rectangulaire
-    const trackLimit = 15;
+    // Limites générales pour éviter que la voiture sorte trop loin
+    const trackLimit = 25;
     if (Math.abs(newPosition[0]) > trackLimit) {
       newPosition[0] = carPosition[0];
-      newVelocity.x = 0;
+      newVelocity.x *= -0.3;
     }
     if (Math.abs(newPosition[2]) > trackLimit) {
       newPosition[2] = carPosition[2];
-      newVelocity.z = 0;
+      newVelocity.z *= -0.3;
     }
 
     setCarPosition(newPosition);
@@ -169,51 +169,30 @@ function Car({ position, rotation, onPositionChange, onLapComplete }: any) {
   );
 }
 
-// Composant de la piste (utilisant votre design)
-function Track() {
+// Composant pour charger et afficher votre piste 3D
+function RaceTrack() {
+  const { scene } = useGLTF('https://mext-content-library.s3.eu-west-3.amazonaws.com/uploads/90d075a3-bdf2-4b14-9d30-30d8df192786.glb');
+  
   return (
     <group>
-      {/* Sol principal */}
-      <Plane args={[40, 40]} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.5, 0]}>
-        <meshStandardMaterial color="#333333" />
-      </Plane>
+      <primitive object={scene} scale={[1, 1, 1]} position={[0, 0, 0]} />
       
-      {/* Lignes de la piste */}
-      <Plane args={[0.2, 30]} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.49, 0]}>
-        <meshStandardMaterial color="#ffffff" />
-      </Plane>
-      <Plane args={[30, 0.2]} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.49, 0]}>
-        <meshStandardMaterial color="#ffffff" />
-      </Plane>
-      
-      {/* Bordures */}
-      {[-15, 15].map((x, i) => (
-        <Box key={`border-x-${i}`} args={[0.5, 1, 30]} position={[x, 0, 0]}>
-          <meshStandardMaterial color="#ff8800" />
-        </Box>
-      ))}
-      {[-15, 15].map((z, i) => (
-        <Box key={`border-z-${i}`} args={[30, 1, 0.5]} position={[0, 0, z]}>
-          <meshStandardMaterial color="#ff8800" />
-        </Box>
-      ))}
-      
-      {/* Checkpoints verts */}
-      <Box args={[2, 0.2, 0.5]} position={[0, 0.1, 10]}>
+      {/* Checkpoints verts pour le système de tours */}
+      <Box args={[3, 0.5, 1]} position={[0, 1, 20]}>
         <meshStandardMaterial color="#00ff00" transparent opacity={0.7} />
       </Box>
-      <Box args={[0.5, 0.2, 2]} position={[10, 0.1, 0]}>
+      <Box args={[1, 0.5, 3]} position={[20, 1, 0]}>
         <meshStandardMaterial color="#00ff00" transparent opacity={0.7} />
       </Box>
-      <Box args={[2, 0.2, 0.5]} position={[0, 0.1, -10]}>
+      <Box args={[3, 0.5, 1]} position={[0, 1, -20]}>
         <meshStandardMaterial color="#00ff00" transparent opacity={0.7} />
       </Box>
-      <Box args={[0.5, 0.2, 2]} position={[-10, 0.1, 0]}>
+      <Box args={[1, 0.5, 3]} position={[-20, 1, 0]}>
         <meshStandardMaterial color="#00ff00" transparent opacity={0.7} />
       </Box>
       
       {/* Ligne de départ/arrivée */}
-      <Box args={[2, 0.2, 0.5]} position={[0, 0.1, 0]}>
+      <Box args={[4, 0.5, 1]} position={[0, 1, 0]}>
         <meshStandardMaterial color="#ffffff" />
       </Box>
     </group>
@@ -225,7 +204,7 @@ function CarCamera({ carPosition }: { carPosition: number[] }) {
   const { camera } = useThree();
   
   useFrame(() => {
-    const cameraOffset = new THREE.Vector3(0, 5, 8);
+    const cameraOffset = new THREE.Vector3(0, 8, 12);
     const targetPosition = new THREE.Vector3(carPosition[0], carPosition[1], carPosition[2]);
     
     camera.position.lerp(targetPosition.clone().add(cameraOffset), 0.05);
@@ -251,7 +230,7 @@ function UI({ currentLap, totalLaps, gameWon, raceTime }: any) {
       borderRadius: '15px',
       minWidth: '250px'
     }}>
-      <h3 style={{ margin: '0 0 15px 0', color: '#ffdd00' }}>🏁 Course 3 Tours</h3>
+      <h3 style={{ margin: '0 0 15px 0', color: '#ffdd00' }}>🏁 Piste Low Poly</h3>
       
       <div style={{ fontSize: '20px', marginBottom: '10px', color: '#00ff88' }}>
         Tour: {currentLap}/{totalLaps}
@@ -285,7 +264,7 @@ function UI({ currentLap, totalLaps, gameWon, raceTime }: any) {
 }
 
 const Block: React.FC<BlockProps> = ({ title, description }) => {
-  const [carPosition, setCarPosition] = useState([0, 0, 0]);
+  const [carPosition, setCarPosition] = useState([0, 1, 0]);
   const [currentLap, setCurrentLap] = useState(0);
   const [totalLaps] = useState(3);
   const [gameWon, setGameWon] = useState(false);
@@ -345,19 +324,20 @@ const Block: React.FC<BlockProps> = ({ title, description }) => {
       />
       
       <Canvas
-        camera={{ position: [0, 5, 8], fov: 75 }}
+        camera={{ position: [0, 12, 15], fov: 75 }}
         style={{ background: 'linear-gradient(to top, #87CEEB, #98FB98)' }}
       >
         {/* Éclairage */}
         <ambientLight intensity={0.6} />
-        <directionalLight position={[10, 10, 5]} intensity={1} />
+        <directionalLight position={[15, 15, 10]} intensity={1.2} />
+        <directionalLight position={[-15, 15, -10]} intensity={0.8} />
         
-        {/* Piste (votre design original) */}
-        <Track />
+        {/* Votre piste 3D */}
+        <RaceTrack />
         
-        {/* Voiture - Position corrigée au centre */}
+        {/* Voiture - Position légèrement surélevée */}
         <Car 
-          position={[0, 0, 0]} 
+          position={[0, 1, 0]} 
           rotation={Math.PI}
           onPositionChange={setCarPosition}
           onLapComplete={handleLapComplete}
