@@ -535,7 +535,7 @@ function RaceTrack() {
         );
       })}
       
-      {/* Checkpoints - SANS PANNEAUX BLANCS, SEULEMENT LES LIGNES COLORÉES */}
+      {/* Checkpoints - TOUS EN VERT */}
       <group>
         {/* Checkpoint 1 (DROITE) - Premier checkpoint dans le sens de circulation */}
         <group position={[180, 0.3, 0]}>
@@ -550,28 +550,28 @@ function RaceTrack() {
           ))}
         </group>
         
-        {/* Checkpoint 2 (HAUT) - Deuxième checkpoint */}
+        {/* Checkpoint 2 (HAUT) - Deuxième checkpoint - REMIS EN VERT */}
         <group position={[0, 0.3, 180]}>
           <Box args={[2, 0.2, 120]} position={[0, 0, 0]}>
-            <meshStandardMaterial color="#ffff00" emissive="#444400" />
+            <meshStandardMaterial color="#00ff00" emissive="#004400" />
           </Box>
-          {/* Rayures jaunes alternées */}
+          {/* Rayures vertes alternées */}
           {Array.from({ length: 40 }).map((_, i) => (
             <Box key={i} args={[1, 0.3, 3]} position={[0, 0, -60 + i * 3]}>
-              <meshStandardMaterial color={i % 2 === 0 ? "#ffff00" : "#ffcc00"} emissive="#222200" />
+              <meshStandardMaterial color={i % 2 === 0 ? "#00ff00" : "#00cc00"} emissive="#002200" />
             </Box>
           ))}
         </group>
         
-        {/* Checkpoint 3 (GAUCHE) - Troisième checkpoint */}
+        {/* Checkpoint 3 (GAUCHE) - Troisième checkpoint - REMIS EN VERT */}
         <group position={[-180, 0.3, 0]}>
           <Box args={[120, 0.2, 2]} position={[0, 0, 0]}>
-            <meshStandardMaterial color="#ff8800" emissive="#442200" />
+            <meshStandardMaterial color="#00ff00" emissive="#004400" />
           </Box>
-          {/* Rayures orange alternées */}
+          {/* Rayures vertes alternées */}
           {Array.from({ length: 40 }).map((_, i) => (
             <Box key={i} args={[3, 0.3, 1]} position={[-60 + i * 3, 0, 0]}>
-              <meshStandardMaterial color={i % 2 === 0 ? "#ff8800" : "#ff6600"} emissive="#221100" />
+              <meshStandardMaterial color={i % 2 === 0 ? "#00ff00" : "#00cc00"} emissive="#002200" />
             </Box>
           ))}
         </group>
@@ -689,7 +689,7 @@ function UI({ currentLap, totalLaps, gameWon, raceTime, cameraMode, onCameraMode
       border: '2px solid #ffdd00'
     }}>
       <h3 style={{ margin: '0 0 15px 0', color: '#ffdd00', textAlign: 'center' }}>
-        🏁 Circuit F1 - CHECKPOINTS ÉPURÉS
+        🏁 Circuit F1 Racing
       </h3>
       
       <div style={{ 
@@ -789,12 +789,6 @@ function UI({ currentLap, totalLaps, gameWon, raceTime, cameraMode, onCameraMode
         <div>↓/S - Freiner</div>
         <div>←/A - Tourner à gauche</div>
         <div>→/D - Tourner à droite</div>
-        <div style={{ marginTop: '10px', color: '#88ddff' }}>
-          🟢 1️⃣ Droite → 🟡 2️⃣ Haut → 🟠 3️⃣ Gauche → 🏁 Arrivée
-        </div>
-        <div style={{ color: '#88ddff' }}>
-          Checkpoints : seulement les lignes colorées au sol !
-        </div>
       </div>
     </div>
   );
