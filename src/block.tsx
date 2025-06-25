@@ -340,22 +340,22 @@ function RaceTrack() {
         );
       })}
       
-      {/* Checkpoints lumineux - PLATS */}
+      {/* Checkpoints lumineux - PERPENDICULAIRES À LA ROUTE */}
       <group>
-        {/* Checkpoint 1 (haut) */}
-        <Box args={[30, 8, 2]} position={[0, 6, 180]}>
+        {/* Checkpoint 1 (haut) - Perpendiculaire à la route */}
+        <Box args={[3, 8, 60]} position={[0, 6, 180]}>
           <meshStandardMaterial color="#00ff00" emissive="#004400" />
         </Box>
-        {/* Checkpoint 2 (droite) */}
-        <Box args={[2, 8, 30]} position={[180, 6, 0]}>
+        {/* Checkpoint 2 (droite) - Perpendiculaire à la route */}
+        <Box args={[60, 8, 3]} position={[180, 6, 0]}>
           <meshStandardMaterial color="#00ff00" emissive="#004400" />
         </Box>
-        {/* Checkpoint 3 (bas) */}
-        <Box args={[30, 8, 2]} position={[0, 6, -180]}>
+        {/* Checkpoint 3 (bas) - Perpendiculaire à la route */}
+        <Box args={[3, 8, 60]} position={[0, 6, -180]}>
           <meshStandardMaterial color="#00ff00" emissive="#004400" />
         </Box>
-        {/* Checkpoint 4 (gauche) */}
-        <Box args={[2, 8, 30]} position={[-180, 6, 0]}>
+        {/* Checkpoint 4 (gauche) - Perpendiculaire à la route */}
+        <Box args={[60, 8, 3]} position={[-180, 6, 0]}>
           <meshStandardMaterial color="#00ff00" emissive="#004400" />
         </Box>
       </group>
