@@ -172,7 +172,7 @@ function Car({ position, rotation, onPositionChange, onLapComplete, onRotationCh
   const [velocity, setVelocity] = useState({ x: 0, z: 0 });
   const keysPressed = useRef<{ [key: string]: boolean }>({});
   
-  // SYSTÈME DE TOUR COMPLÈTEMENT REFAIT - LOGIQUE SIMPLIFIÉE
+  // SYSTÈME DE TOUR CORRIGÉ - GESTION DE LA ZONE DE DÉPART
   const [lapProgress, setLapProgress] = useState({
     currentLap: 0,
     checkpoints: {
@@ -181,7 +181,8 @@ function Car({ position, rotation, onPositionChange, onLapComplete, onRotationCh
       checkpoint3: false  // Gauche (x < -150)
     },
     lastLapTime: 0,
-    canFinishLap: false
+    canFinishLap: false,
+    hasLeftStartLine: false // NOUVEAU : Assure que la voiture a quitté la ligne de départ
   });
 
   useEffect(() => {
@@ -202,7 +203,7 @@ function Car({ position, rotation, onPositionChange, onLapComplete, onRotationCh
     };
   }, []);
 
-  // LOGIQUE DE DÉTECTION DE TOUR SIMPLIFIÉE ET CORRIGÉE
+  // LOGIQUE DE DÉTECTION DE TOUR AVEC GESTION DE LA ZONE DE DÉPART
   const checkLapProgress = (pos: number[]) => {
     const x = pos[0];
     const z = pos[2];
@@ -211,6 +212,22 @@ function Car({ position, rotation, onPositionChange, onLapComplete, onRotationCh
     // Créer une copie de l'état actuel
     const newProgress = { ...lapProgress };
     let stateChanged = false;
+
+    // ÉTAPE 0 : Vérifier si la voiture a quitté la zone de la ligne de départ
+    if (!newProgress.hasLeftStartLine) {
+      // La ligne de départ est à z = -180, avec une zone de ±40
+      // La voiture doit sortir de cette zone (z > -140 OU z < -220)
+      if (z > -140 || z < -220) {
+        newProgress.hasLeftStartLine = true;
+        stateChanged = true;
+        console.log("🚗 La voiture a quitté la ligne de départ ! Le tour peut commencer.");
+      }
+      // Si elle n'a pas quitté la ligne de départ, on ne peut pas compter les checkpoints
+      if (stateChanged) {
+        setLapProgress(newProgress);
+      }
+      return;
+    }
 
     // CHECKPOINT 1 - Haut de la piste (z > 150)
     if (!newProgress.checkpoints.checkpoint1 && z > 150 && Math.abs(x) < 80) {
@@ -239,25 +256,26 @@ function Car({ position, rotation, onPositionChange, onLapComplete, onRotationCh
       console.log("✅ CHECKPOINT 3 (GAUCHE) franchi ! Peut finir le tour maintenant.");
     }
     
-    // LIGNE D'ARRIVÉE - Finir le tour (z < -160) - SEULEMENT si tous les checkpoints sont passés
+    // LIGNE D'ARRIVÉE - Finir le tour (zone de ligne de départ/arrivée)
     else if (newProgress.canFinishLap && 
              z < -160 && z > -220 && Math.abs(x) < 60) {
       
-      // Vérification du délai minimum (sauf pour le premier tour)
-      const minDelay = newProgress.currentLap === 0 ? 0 : 2000; // 2 secondes entre les tours
+      // Vérification du délai minimum entre les tours
+      const minDelay = 2000; // 2 secondes entre tous les tours
       
       if ((currentTime - newProgress.lastLapTime) > minDelay) {
         // TOUR TERMINÉ !
         newProgress.currentLap += 1;
         newProgress.lastLapTime = currentTime;
         
-        // Remettre à zéro les checkpoints pour le tour suivant
+        // Remettre à zéro pour le tour suivant
         newProgress.checkpoints = {
           checkpoint1: false,
           checkpoint2: false,
           checkpoint3: false
         };
         newProgress.canFinishLap = false;
+        // On garde hasLeftStartLine = true car on est toujours dans la course
         
         stateChanged = true;
         console.log(`🏁 TOUR ${newProgress.currentLap} TERMINÉ !`);
@@ -685,7 +703,7 @@ function UI({ currentLap, totalLaps, gameWon, raceTime, cameraMode, onCameraMode
       border: '2px solid #ffdd00'
     }}>
       <h3 style={{ margin: '0 0 15px 0', color: '#ffdd00', textAlign: 'center' }}>
-        🏁 Circuit F1 - CAMÉRA VERROUILLÉE
+        🏁 Circuit F1 - TOURS CORRIGÉS
       </h3>
       
       <div style={{ 
@@ -786,10 +804,10 @@ function UI({ currentLap, totalLaps, gameWon, raceTime, cameraMode, onCameraMode
         <div>←/A - Tourner à gauche</div>
         <div>→/D - Tourner à droite</div>
         <div style={{ marginTop: '10px', color: '#88ddff' }}>
-          🎥 Caméra suit automatiquement la voiture
+          🚗 Avancez pour commencer le premier tour !
         </div>
         <div style={{ color: '#88ddff' }}>
-          Changez le mode de vue avec les boutons
+          Passez tous les checkpoints verts dans l'ordre
         </div>
       </div>
     </div>
