@@ -83,7 +83,7 @@ function Car({ position, rotation, onPositionChange, onLapComplete }: any) {
   useFrame(() => {
     if (!carRef.current) return;
 
-    const speed = 0.3; // Vitesse augmentée pour la grande piste
+    const speed = 0.15; // Vitesse RÉDUITE (était 0.3)
     const rotationSpeed = 0.04;
     let newVelocity = { ...velocity };
     let newRotation = carRotation;
@@ -106,9 +106,9 @@ function Car({ position, rotation, onPositionChange, onLapComplete }: any) {
       newVelocity.z -= Math.cos(newRotation) * speed * 0.6;
     }
 
-    // Friction
-    newVelocity.x *= 0.98; // Moins de friction sur la grande piste
-    newVelocity.z *= 0.98;
+    // Friction AUGMENTÉE pour moins de glissement
+    newVelocity.x *= 0.92; // Plus de friction (était 0.98)
+    newVelocity.z *= 0.92;
 
     // Mise à jour de la position
     const newPosition = [
@@ -394,19 +394,34 @@ function RaceTrack() {
   );
 }
 
-// Caméra qui suit la voiture - Ajustée pour la grande piste
-function CarCamera({ carPosition }: { carPosition: number[] }) {
+// Caméra contrôlable avec OrbitControls
+function ControllableCamera({ carPosition }: { carPosition: number[] }) {
+  const controlsRef = useRef<any>();
   const { camera } = useThree();
   
   useFrame(() => {
-    const cameraOffset = new THREE.Vector3(0, 30, 40); // Caméra plus haute
+    // Suivre la voiture comme point de référence
     const targetPosition = new THREE.Vector3(carPosition[0], carPosition[1], carPosition[2]);
     
-    camera.position.lerp(targetPosition.clone().add(cameraOffset), 0.05);
-    camera.lookAt(targetPosition);
+    // Mettre à jour la cible des contrôles pour suivre la voiture
+    if (controlsRef.current) {
+      controlsRef.current.target.lerp(targetPosition, 0.02);
+    }
   });
 
-  return null;
+  return (
+    <OrbitControls
+      ref={controlsRef}
+      enablePan={true}
+      enableZoom={true}
+      enableRotate={true}
+      minDistance={10}
+      maxDistance={200}
+      minPolarAngle={0}
+      maxPolarAngle={Math.PI / 2}
+      target={[carPosition[0], carPosition[1], carPosition[2]]}
+    />
+  );
 }
 
 // Interface utilisateur avec compteur de tours
@@ -474,6 +489,12 @@ function UI({ currentLap, totalLaps, gameWon, raceTime }: any) {
         <div>↓/S - Freiner</div>
         <div>←/A - Tourner à gauche</div>
         <div>→/D - Tourner à droite</div>
+        <div style={{ marginTop: '10px', color: '#88ddff' }}>
+          🎥 Caméra: Clic + Glisser pour tourner
+        </div>
+        <div style={{ color: '#88ddff' }}>
+          🔍 Molette: Zoom in/out
+        </div>
       </div>
     </div>
   );
@@ -566,8 +587,8 @@ const Block: React.FC<BlockProps> = ({ title, description }) => {
           onLapComplete={handleLapComplete}
         />
         
-        {/* Caméra qui suit */}
-        <CarCamera carPosition={carPosition} />
+        {/* Caméra contrôlable */}
+        <ControllableCamera carPosition={carPosition} />
       </Canvas>
     </div>
   );
