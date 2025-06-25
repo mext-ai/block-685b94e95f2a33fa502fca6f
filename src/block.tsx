@@ -171,13 +171,15 @@ function Car({ position, rotation, onPositionChange, onLapComplete, onRotationCh
   const [carRotation, setCarRotation] = useState(rotation);
   const [velocity, setVelocity] = useState({ x: 0, z: 0 });
   const keysPressed = useRef<{ [key: string]: boolean }>({});
-  const [checkpoints, setCheckpoints] = useState({
+  
+  // NOUVEAU SYSTÈME DE TOUR SIMPLIFIÉ
+  const [lapState, setLapState] = useState({
+    hasStarted: false,
     checkpoint1: false,
     checkpoint2: false,
-    checkpoint3: false
+    checkpoint3: false,
+    lastFinishTime: 0
   });
-  const [hasStarted, setHasStarted] = useState(false);
-  const [lastFinishLineTime, setLastFinishLineTime] = useState(0); // Pour éviter les détections multiples
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -197,61 +199,69 @@ function Car({ position, rotation, onPositionChange, onLapComplete, onRotationCh
     };
   }, []);
 
-  // Fonction pour vérifier les checkpoints - SYSTÈME AMÉLIORÉ
-  const checkCheckpoints = (pos: number[]) => {
+  // SYSTÈME DE DÉTECTION COMPLÈTEMENT REFAIT
+  const checkLapProgress = (pos: number[]) => {
     const x = pos[0];
     const z = pos[2];
     const currentTime = Date.now();
-    let newCheckpoints = { ...checkpoints };
     
-    // Détection du démarrage (premier passage sur la ligne d'arrivée)
-    if (!hasStarted && z > -200 && z < -160 && Math.abs(x) < 50) {
-      setHasStarted(true);
-      setLastFinishLineTime(currentTime);
-      console.log("Course démarrée !");
-      return; // Ne pas compter comme un tour complet
+    // Copie de l'état actuel
+    let newLapState = { ...lapState };
+    
+    // 1. DÉMARRAGE - Premier passage sur la ligne
+    if (!newLapState.hasStarted && z > -200 && z < -160 && Math.abs(x) < 50) {
+      newLapState.hasStarted = true;
+      newLapState.lastFinishTime = currentTime;
+      console.log("🚦 DÉPART - Course commencée !");
+      setLapState(newLapState);
+      return;
     }
     
-    // SYSTÈME DE CHECKPOINTS SÉQUENTIEL AMÉLIORÉ
-    // Checkpoint 1 (haut de la piste) - Premier checkpoint obligatoire
-    if (z > 150 && Math.abs(x) < 60 && !checkpoints.checkpoint1 && hasStarted) {
-      newCheckpoints.checkpoint1 = true;
-      console.log("Checkpoint 1 franchi !");
+    // 2. CHECKPOINT 1 (haut) - seulement si on a démarré
+    if (newLapState.hasStarted && !newLapState.checkpoint1 && z > 150 && Math.abs(x) < 70) {
+      newLapState.checkpoint1 = true;
+      console.log("✅ CHECKPOINT 1 franchi !");
+      setLapState(newLapState);
+      return;
     }
     
-    // Checkpoint 2 (droite de la piste) - Seulement après checkpoint 1
-    if (x > 150 && Math.abs(z) < 60 && checkpoints.checkpoint1 && !checkpoints.checkpoint2 && hasStarted) {
-      newCheckpoints.checkpoint2 = true;
-      console.log("Checkpoint 2 franchi !");
+    // 3. CHECKPOINT 2 (droite) - seulement si checkpoint 1 passé
+    if (newLapState.checkpoint1 && !newLapState.checkpoint2 && x > 150 && Math.abs(z) < 70) {
+      newLapState.checkpoint2 = true;
+      console.log("✅ CHECKPOINT 2 franchi !");
+      setLapState(newLapState);
+      return;
     }
     
-    // Checkpoint 3 (gauche de la piste) - Seulement après checkpoint 2
-    if (x < -150 && Math.abs(z) < 60 && checkpoints.checkpoint1 && checkpoints.checkpoint2 && !checkpoints.checkpoint3 && hasStarted) {
-      newCheckpoints.checkpoint3 = true;
-      console.log("Checkpoint 3 franchi !");
+    // 4. CHECKPOINT 3 (gauche) - seulement si checkpoint 2 passé
+    if (newLapState.checkpoint2 && !newLapState.checkpoint3 && x < -150 && Math.abs(z) < 70) {
+      newLapState.checkpoint3 = true;
+      console.log("✅ CHECKPOINT 3 franchi !");
+      setLapState(newLapState);
+      return;
     }
     
-    // Ligne d'arrivée (tour complet) - AVEC DÉLAI DE SÉCURITÉ
-    if (z > -200 && z < -160 && Math.abs(x) < 50 && 
-        checkpoints.checkpoint1 && checkpoints.checkpoint2 && checkpoints.checkpoint3 && 
-        hasStarted && (currentTime - lastFinishLineTime) > 3000) { // Délai minimum de 3 secondes
+    // 5. LIGNE D'ARRIVÉE - Tour complet
+    if (newLapState.hasStarted && 
+        newLapState.checkpoint1 && 
+        newLapState.checkpoint2 && 
+        newLapState.checkpoint3 && 
+        z > -200 && z < -160 && Math.abs(x) < 50 &&
+        (currentTime - newLapState.lastFinishTime) > 5000) { // 5 secondes minimum
       
-      console.log("Tour complet ! Remise à zéro des checkpoints");
-      // Tour complet !
+      console.log("🏁 TOUR COMPLET ! Remise à zéro...");
+      
+      // Signaler le tour complet
       onLapComplete();
-      setLastFinishLineTime(currentTime);
       
-      // Remise à zéro COMPLÈTE des checkpoints
-      newCheckpoints = {
+      // REMISE À ZÉRO COMPLÈTE
+      setLapState({
+        hasStarted: true, // On garde hasStarted à true
         checkpoint1: false,
         checkpoint2: false,
-        checkpoint3: false
-      };
-    }
-    
-    // Mise à jour des checkpoints seulement s'il y a eu un changement
-    if (JSON.stringify(newCheckpoints) !== JSON.stringify(checkpoints)) {
-      setCheckpoints(newCheckpoints);
+        checkpoint3: false,
+        lastFinishTime: currentTime
+      });
     }
   };
 
@@ -306,7 +316,9 @@ function Car({ position, rotation, onPositionChange, onLapComplete, onRotationCh
     setCarPosition(newPosition);
     setCarRotation(newRotation);
     setVelocity(newVelocity);
-    checkCheckpoints(newPosition);
+    
+    // Vérifier les checkpoints
+    checkLapProgress(newPosition);
 
     // Mise à jour de l'objet 3D
     if (carRef.current) {
@@ -515,42 +527,42 @@ function RaceTrack() {
         );
       })}
       
-      {/* Checkpoints - LIGNES VERTES AU SOL (seulement 3 checkpoints) */}
+      {/* Checkpoints - LIGNES VERTES AU SOL ÉLARGIES */}
       <group>
-        {/* Checkpoint 1 (haut) - Ligne verte striée */}
+        {/* Checkpoint 1 (haut) - Ligne verte striée ÉLARGIE */}
         <group position={[0, 0.3, 180]}>
-          <Box args={[2, 0.2, 80]} position={[0, 0, 0]}>
+          <Box args={[2, 0.2, 100]} position={[0, 0, 0]}>
             <meshStandardMaterial color="#00ff00" emissive="#004400" />
           </Box>
           {/* Rayures vertes alternées */}
-          {Array.from({ length: 26 }).map((_, i) => (
-            <Box key={i} args={[1, 0.3, 3]} position={[0, 0, -40 + i * 3]}>
+          {Array.from({ length: 33 }).map((_, i) => (
+            <Box key={i} args={[1, 0.3, 3]} position={[0, 0, -50 + i * 3]}>
               <meshStandardMaterial color={i % 2 === 0 ? "#00ff00" : "#00cc00"} emissive="#002200" />
             </Box>
           ))}
         </group>
         
-        {/* Checkpoint 2 (droite) - Ligne verte striée */}
+        {/* Checkpoint 2 (droite) - Ligne verte striée ÉLARGIE */}
         <group position={[180, 0.3, 0]}>
-          <Box args={[80, 0.2, 2]} position={[0, 0, 0]}>
+          <Box args={[100, 0.2, 2]} position={[0, 0, 0]}>
             <meshStandardMaterial color="#00ff00" emissive="#004400" />
           </Box>
           {/* Rayures vertes alternées */}
-          {Array.from({ length: 26 }).map((_, i) => (
-            <Box key={i} args={[3, 0.3, 1]} position={[-40 + i * 3, 0, 0]}>
+          {Array.from({ length: 33 }).map((_, i) => (
+            <Box key={i} args={[3, 0.3, 1]} position={[-50 + i * 3, 0, 0]}>
               <meshStandardMaterial color={i % 2 === 0 ? "#00ff00" : "#00cc00"} emissive="#002200" />
             </Box>
           ))}
         </group>
         
-        {/* Checkpoint 3 (gauche) - Ligne verte striée */}
+        {/* Checkpoint 3 (gauche) - Ligne verte striée ÉLARGIE */}
         <group position={[-180, 0.3, 0]}>
-          <Box args={[80, 0.2, 2]} position={[0, 0, 0]}>
+          <Box args={[100, 0.2, 2]} position={[0, 0, 0]}>
             <meshStandardMaterial color="#00ff00" emissive="#004400" />
           </Box>
           {/* Rayures vertes alternées */}
-          {Array.from({ length: 26 }).map((_, i) => (
-            <Box key={i} args={[3, 0.3, 1]} position={[-40 + i * 3, 0, 0]}>
+          {Array.from({ length: 33 }).map((_, i) => (
+            <Box key={i} args={[3, 0.3, 1]} position={[-50 + i * 3, 0, 0]}>
               <meshStandardMaterial color={i % 2 === 0 ? "#00ff00" : "#00cc00"} emissive="#002200" />
             </Box>
           ))}
