@@ -300,8 +300,8 @@ function Car({ position, rotation, onPositionChange, onLapComplete, onRotationCh
   });
 
   return (
-    <group ref={carRef}>
-      {/* Corps de la voiture - Style plus moderne */}
+    <group ref={carRef} scale={[1.5, 1.5, 1.5]}>
+      {/* Corps de la voiture - Style plus moderne - AGRANDI x1.5 */}
       <Box args={[2, 0.6, 4]} position={[0, 0.3, 0]}>
         <meshStandardMaterial color="#ff4444" metalness={0.7} roughness={0.3} />
       </Box>
@@ -760,7 +760,7 @@ function UI({ currentLap, totalLaps, gameWon, raceTime, cameraMode, onCameraMode
 const Block: React.FC<BlockProps> = ({ title, description }) => {
   const [gameStarted, setGameStarted] = useState(false);
   const [carPosition, setCarPosition] = useState([0, 1, -200]); // Position de départ AVANT la ligne d'arrivée
-  const [carRotation, setCarRotation] = useState(0); // Rotation 0° pour être perpendiculaire à la ligne d'arrivée
+  const [carRotation, setCarRotation] = useState(-Math.PI/2); // Rotation -90° pour être perpendiculaire à la ligne d'arrivée et faire face vers la ligne
   const [currentLap, setCurrentLap] = useState(0);
   const [totalLaps] = useState(3);
   const [gameWon, setGameWon] = useState(false);
@@ -854,7 +854,7 @@ const Block: React.FC<BlockProps> = ({ title, description }) => {
         {/* Voiture améliorée */}
         <Car 
           position={[0, 1, -200]} 
-          rotation={0}
+          rotation={-Math.PI/2}
           onPositionChange={setCarPosition}
           onRotationChange={setCarRotation}
           onLapComplete={handleLapComplete}
