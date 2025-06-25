@@ -701,7 +701,7 @@ function UI({ currentLap, totalLaps, gameWon, raceTime, cameraMode, onCameraMode
       border: '2px solid #ffdd00'
     }}>
       <h3 style={{ margin: '0 0 15px 0', color: '#ffdd00', textAlign: 'center' }}>
-        🏁 Circuit F1 - CHECKPOINTS CORRIGÉS
+        🏁 Circuit F1 - POSITION PARFAITE
       </h3>
       
       <div style={{ 
@@ -802,10 +802,10 @@ function UI({ currentLap, totalLaps, gameWon, raceTime, cameraMode, onCameraMode
         <div>←/A - Tourner à gauche</div>
         <div>→/D - Tourner à droite</div>
         <div style={{ marginTop: '10px', color: '#88ddff' }}>
-          🟢 1️⃣ Droite (Vert) → 🟡 2️⃣ Haut (Jaune) → 🟠 3️⃣ Gauche (Orange)
+          🏁 Ligne d'arrivée dans le dos, checkpoint 1 devant !
         </div>
         <div style={{ color: '#88ddff' }}>
-          Puis ligne d'arrivée pour terminer le tour !
+          🟢 1️⃣ Droite → 🟡 2️⃣ Haut → 🟠 3️⃣ Gauche → 🏁 Arrivée
         </div>
       </div>
     </div>
@@ -814,9 +814,9 @@ function UI({ currentLap, totalLaps, gameWon, raceTime, cameraMode, onCameraMode
 
 const Block: React.FC<BlockProps> = ({ title, description }) => {
   const [gameStarted, setGameStarted] = useState(false);
-  // Position de départ : APRÈS la ligne d'arrivée
-  const [carPosition, setCarPosition] = useState([0, 1, -120]);
-  const [carRotation, setCarRotation] = useState(0); // Voiture regarde vers le nord
+  // POSITION DE DÉPART PARFAITE : Juste après la ligne d'arrivée, face au checkpoint 1
+  const [carPosition, setCarPosition] = useState([0, 1, -130]); // Un peu plus près de la ligne d'arrivée
+  const [carRotation, setCarRotation] = useState(Math.PI / 2); // 90° pour regarder vers la droite (checkpoint 1)
   const [currentLap, setCurrentLap] = useState(0);
   const [totalLaps] = useState(3);
   const [gameWon, setGameWon] = useState(false);
@@ -907,10 +907,10 @@ const Block: React.FC<BlockProps> = ({ title, description }) => {
         {/* Piste 3D procédurale COMPLÈTEMENT PLATE */}
         <RaceTrack />
         
-        {/* Voiture améliorée - Position de départ corrigée */}
+        {/* Voiture améliorée - POSITION DE DÉPART PARFAITE */}
         <Car 
-          position={[0, 1, -120]} 
-          rotation={0}
+          position={[0, 1, -130]} 
+          rotation={Math.PI / 2}
           onPositionChange={setCarPosition}
           onRotationChange={setCarRotation}
           onLapComplete={handleLapComplete}
