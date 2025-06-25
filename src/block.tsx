@@ -172,13 +172,13 @@ function Car({ position, rotation, onPositionChange, onLapComplete, onRotationCh
   const [velocity, setVelocity] = useState({ x: 0, z: 0 });
   const keysPressed = useRef<{ [key: string]: boolean }>({});
   
-  // SYSTÈME DE TOUR SIMPLIFIÉ - PAS BESOIN DE SORTIR DE ZONE
+  // SYSTÈME DE TOUR AVEC ORDRE CORRIGÉ DES CHECKPOINTS
   const [lapProgress, setLapProgress] = useState({
     currentLap: 0,
     checkpoints: {
-      checkpoint1: false, // Haut (z > 150)
-      checkpoint2: false, // Droite (x > 150)
-      checkpoint3: false  // Gauche (x < -150)
+      checkpoint1: false, // DROITE (x > 150) - Premier checkpoint dans le sens de circulation
+      checkpoint2: false, // HAUT (z > 150) - Deuxième checkpoint
+      checkpoint3: false  // GAUCHE (x < -150) - Troisième checkpoint
     },
     lastLapTime: 0,
     canFinishLap: false
@@ -202,7 +202,7 @@ function Car({ position, rotation, onPositionChange, onLapComplete, onRotationCh
     };
   }, []);
 
-  // LOGIQUE DE DÉTECTION DE TOUR SIMPLIFIÉE
+  // LOGIQUE DE DÉTECTION AVEC ORDRE CORRIGÉ : DROITE → HAUT → GAUCHE → ARRIVÉE
   const checkLapProgress = (pos: number[]) => {
     const x = pos[0];
     const z = pos[2];
@@ -212,23 +212,23 @@ function Car({ position, rotation, onPositionChange, onLapComplete, onRotationCh
     const newProgress = { ...lapProgress };
     let stateChanged = false;
 
-    // CHECKPOINT 1 - Haut de la piste (z > 150)
-    if (!newProgress.checkpoints.checkpoint1 && z > 150 && Math.abs(x) < 80) {
+    // CHECKPOINT 1 - DROITE de la piste (x > 150) - PREMIER dans le sens de circulation
+    if (!newProgress.checkpoints.checkpoint1 && x > 150 && Math.abs(z) < 80) {
       newProgress.checkpoints.checkpoint1 = true;
       stateChanged = true;
-      console.log("✅ CHECKPOINT 1 (HAUT) franchi !");
+      console.log("✅ CHECKPOINT 1 (DROITE) franchi !");
     }
     
-    // CHECKPOINT 2 - Droite de la piste (x > 150) - SEULEMENT si checkpoint 1 passé
+    // CHECKPOINT 2 - HAUT de la piste (z > 150) - SEULEMENT si checkpoint 1 passé
     else if (newProgress.checkpoints.checkpoint1 && 
              !newProgress.checkpoints.checkpoint2 && 
-             x > 150 && Math.abs(z) < 80) {
+             z > 150 && Math.abs(x) < 80) {
       newProgress.checkpoints.checkpoint2 = true;
       stateChanged = true;
-      console.log("✅ CHECKPOINT 2 (DROITE) franchi !");
+      console.log("✅ CHECKPOINT 2 (HAUT) franchi !");
     }
     
-    // CHECKPOINT 3 - Gauche de la piste (x < -150) - SEULEMENT si checkpoint 2 passé
+    // CHECKPOINT 3 - GAUCHE de la piste (x < -150) - SEULEMENT si checkpoint 1+2 passés
     else if (newProgress.checkpoints.checkpoint1 && 
              newProgress.checkpoints.checkpoint2 && 
              !newProgress.checkpoints.checkpoint3 && 
@@ -239,7 +239,7 @@ function Car({ position, rotation, onPositionChange, onLapComplete, onRotationCh
       console.log("✅ CHECKPOINT 3 (GAUCHE) franchi ! Peut finir le tour maintenant.");
     }
     
-    // LIGNE D'ARRIVÉE - Finir le tour (zone de ligne de départ/arrivée)
+    // LIGNE D'ARRIVÉE - Finir le tour (zone de ligne d'arrivée au sud)
     else if (newProgress.canFinishLap && 
              z < -160 && z > -220 && Math.abs(x) < 60) {
       
@@ -535,22 +535,9 @@ function RaceTrack() {
         );
       })}
       
-      {/* Checkpoints - LIGNES VERTES AU SOL ÉLARGIES */}
+      {/* Checkpoints - ORDRE CORRIGÉ POUR LE SENS DE CIRCULATION */}
       <group>
-        {/* Checkpoint 1 (haut) - Ligne verte striée ÉLARGIE */}
-        <group position={[0, 0.3, 180]}>
-          <Box args={[2, 0.2, 120]} position={[0, 0, 0]}>
-            <meshStandardMaterial color="#00ff00" emissive="#004400" />
-          </Box>
-          {/* Rayures vertes alternées */}
-          {Array.from({ length: 40 }).map((_, i) => (
-            <Box key={i} args={[1, 0.3, 3]} position={[0, 0, -60 + i * 3]}>
-              <meshStandardMaterial color={i % 2 === 0 ? "#00ff00" : "#00cc00"} emissive="#002200" />
-            </Box>
-          ))}
-        </group>
-        
-        {/* Checkpoint 2 (droite) - Ligne verte striée ÉLARGIE */}
+        {/* Checkpoint 1 (DROITE) - Premier checkpoint dans le sens de circulation */}
         <group position={[180, 0.3, 0]}>
           <Box args={[120, 0.2, 2]} position={[0, 0, 0]}>
             <meshStandardMaterial color="#00ff00" emissive="#004400" />
@@ -561,19 +548,44 @@ function RaceTrack() {
               <meshStandardMaterial color={i % 2 === 0 ? "#00ff00" : "#00cc00"} emissive="#002200" />
             </Box>
           ))}
+          {/* Panneau indicateur CHECKPOINT 1 */}
+          <Box args={[10, 8, 1]} position={[0, 8, 10]}>
+            <meshStandardMaterial color="#ffffff" />
+          </Box>
         </group>
         
-        {/* Checkpoint 3 (gauche) - Ligne verte striée ÉLARGIE */}
-        <group position={[-180, 0.3, 0]}>
-          <Box args={[120, 0.2, 2]} position={[0, 0, 0]}>
-            <meshStandardMaterial color="#00ff00" emissive="#004400" />
+        {/* Checkpoint 2 (HAUT) - Deuxième checkpoint */}
+        <group position={[0, 0.3, 180]}>
+          <Box args={[2, 0.2, 120]} position={[0, 0, 0]}>
+            <meshStandardMaterial color="#ffff00" emissive="#444400" />
           </Box>
-          {/* Rayures vertes alternées */}
+          {/* Rayures jaunes alternées */}
           {Array.from({ length: 40 }).map((_, i) => (
-            <Box key={i} args={[3, 0.3, 1]} position={[-60 + i * 3, 0, 0]}>
-              <meshStandardMaterial color={i % 2 === 0 ? "#00ff00" : "#00cc00"} emissive="#002200" />
+            <Box key={i} args={[1, 0.3, 3]} position={[0, 0, -60 + i * 3]}>
+              <meshStandardMaterial color={i % 2 === 0 ? "#ffff00" : "#ffcc00"} emissive="#222200" />
             </Box>
           ))}
+          {/* Panneau indicateur CHECKPOINT 2 */}
+          <Box args={[10, 8, 1]} position={[10, 8, 0]}>
+            <meshStandardMaterial color="#ffffff" />
+          </Box>
+        </group>
+        
+        {/* Checkpoint 3 (GAUCHE) - Troisième checkpoint */}
+        <group position={[-180, 0.3, 0]}>
+          <Box args={[120, 0.2, 2]} position={[0, 0, 0]}>
+            <meshStandardMaterial color="#ff8800" emissive="#442200" />
+          </Box>
+          {/* Rayures orange alternées */}
+          {Array.from({ length: 40 }).map((_, i) => (
+            <Box key={i} args={[3, 0.3, 1]} position={[-60 + i * 3, 0, 0]}>
+              <meshStandardMaterial color={i % 2 === 0 ? "#ff8800" : "#ff6600"} emissive="#221100" />
+            </Box>
+          ))}
+          {/* Panneau indicateur CHECKPOINT 3 */}
+          <Box args={[10, 8, 1]} position={[0, 8, 10]}>
+            <meshStandardMaterial color="#ffffff" />
+          </Box>
         </group>
       </group>
       
@@ -589,6 +601,10 @@ function RaceTrack() {
             <meshStandardMaterial color={i % 2 === 0 ? "#000000" : "#ffffff"} />
           </Box>
         ))}
+        {/* Panneau DÉPART/ARRIVÉE */}
+        <Box args={[15, 10, 1]} position={[0, 10, 15]}>
+          <meshStandardMaterial color="#ffffff" />
+        </Box>
       </group>
       
       {/* Éclairage de la piste - Plus de lampadaires */}
@@ -685,7 +701,7 @@ function UI({ currentLap, totalLaps, gameWon, raceTime, cameraMode, onCameraMode
       border: '2px solid #ffdd00'
     }}>
       <h3 style={{ margin: '0 0 15px 0', color: '#ffdd00', textAlign: 'center' }}>
-        🏁 Circuit F1 - POSITION CORRIGÉE
+        🏁 Circuit F1 - CHECKPOINTS CORRIGÉS
       </h3>
       
       <div style={{ 
@@ -786,10 +802,10 @@ function UI({ currentLap, totalLaps, gameWon, raceTime, cameraMode, onCameraMode
         <div>←/A - Tourner à gauche</div>
         <div>→/D - Tourner à droite</div>
         <div style={{ marginTop: '10px', color: '#88ddff' }}>
-          🏁 La voiture démarre APRÈS la ligne d'arrivée
+          🟢 1️⃣ Droite (Vert) → 🟡 2️⃣ Haut (Jaune) → 🟠 3️⃣ Gauche (Orange)
         </div>
         <div style={{ color: '#88ddff' }}>
-          Faites un tour complet pour compter !
+          Puis ligne d'arrivée pour terminer le tour !
         </div>
       </div>
     </div>
@@ -798,9 +814,9 @@ function UI({ currentLap, totalLaps, gameWon, raceTime, cameraMode, onCameraMode
 
 const Block: React.FC<BlockProps> = ({ title, description }) => {
   const [gameStarted, setGameStarted] = useState(false);
-  // NOUVELLE POSITION DE DÉPART : APRÈS la ligne d'arrivée (z = -120 au lieu de -210)
+  // Position de départ : APRÈS la ligne d'arrivée
   const [carPosition, setCarPosition] = useState([0, 1, -120]);
-  const [carRotation, setCarRotation] = useState(0); // NOUVELLE ROTATION : 0° pour regarder vers le nord
+  const [carRotation, setCarRotation] = useState(0); // Voiture regarde vers le nord
   const [currentLap, setCurrentLap] = useState(0);
   const [totalLaps] = useState(3);
   const [gameWon, setGameWon] = useState(false);
@@ -891,7 +907,7 @@ const Block: React.FC<BlockProps> = ({ title, description }) => {
         {/* Piste 3D procédurale COMPLÈTEMENT PLATE */}
         <RaceTrack />
         
-        {/* Voiture améliorée - NOUVELLE POSITION DE DÉPART */}
+        {/* Voiture améliorée - Position de départ corrigée */}
         <Car 
           position={[0, 1, -120]} 
           rotation={0}
