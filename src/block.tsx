@@ -117,30 +117,29 @@ function Car({ position, rotation, onPositionChange, onLapComplete }: any) {
       carPosition[2] + newVelocity.z
     ];
 
-    // Collision avec les bordures de la piste circulaire
-    const centerDistance = Math.sqrt(newPosition[0] * newPosition[0] + newPosition[2] * newPosition[2]);
-    const outerLimit = 12.5;
-    const innerLimit = 6.5;
-    
-    if (centerDistance > outerLimit || centerDistance < innerLimit) {
-      // Collision - rebond
-      newVelocity.x *= -0.5;
-      newVelocity.z *= -0.5;
-    } else {
-      setCarPosition(newPosition);
-      checkCheckpoints(newPosition);
+    // Limites de la piste rectangulaire
+    const trackLimit = 15;
+    if (Math.abs(newPosition[0]) > trackLimit) {
+      newPosition[0] = carPosition[0];
+      newVelocity.x = 0;
+    }
+    if (Math.abs(newPosition[2]) > trackLimit) {
+      newPosition[2] = carPosition[2];
+      newVelocity.z = 0;
     }
 
+    setCarPosition(newPosition);
     setCarRotation(newRotation);
     setVelocity(newVelocity);
+    checkCheckpoints(newPosition);
 
     // Mise à jour de l'objet 3D
     if (carRef.current) {
-      carRef.current.position.set(carPosition[0], carPosition[1], carPosition[2]);
+      carRef.current.position.set(newPosition[0], newPosition[1], newPosition[2]);
       carRef.current.rotation.y = newRotation;
     }
 
-    onPositionChange(carPosition);
+    onPositionChange(newPosition);
   });
 
   return (
@@ -170,70 +169,53 @@ function Car({ position, rotation, onPositionChange, onLapComplete }: any) {
   );
 }
 
-// Composant de la piste circulaire
-function CircularTrack() {
-  const trackSegments = [];
-  const checkpointMarkers = [];
-  
-  // Créer les segments de la piste circulaire
-  for (let i = 0; i < 32; i++) {
-    const angle = (i / 32) * Math.PI * 2;
-    const x = Math.cos(angle);
-    const z = Math.sin(angle);
-    
-    // Bordure extérieure
-    trackSegments.push(
-      <Box key={`outer-${i}`} args={[1, 1, 1]} position={[x * 13, 0, z * 13]}>
-        <meshStandardMaterial color="#ff8800" />
-      </Box>
-    );
-    
-    // Bordure intérieure
-    trackSegments.push(
-      <Box key={`inner-${i}`} args={[1, 1, 1]} position={[x * 6, 0, z * 6]}>
-        <meshStandardMaterial color="#ff8800" />
-      </Box>
-    );
-  }
-  
-  // Marqueurs de checkpoints
-  const checkpointPositions = [
-    [0, 0.1, 10], // Checkpoint 1
-    [10, 0.1, 0], // Checkpoint 2
-    [0, 0.1, -10], // Checkpoint 3
-    [-10, 0.1, 0], // Checkpoint 4
-  ];
-  
-  checkpointPositions.forEach((pos, i) => {
-    checkpointMarkers.push(
-      <Box key={`checkpoint-${i}`} args={[4, 0.2, 1]} position={pos}>
-        <meshStandardMaterial color="#00ff00" transparent opacity={0.7} />
-      </Box>
-    );
-  });
-
+// Composant de la piste (utilisant votre design)
+function Track() {
   return (
     <group>
-      {/* Sol de base */}
-      <Plane args={[50, 50]} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.5, 0]}>
-        <meshStandardMaterial color="#228B22" />
+      {/* Sol principal */}
+      <Plane args={[40, 40]} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.5, 0]}>
+        <meshStandardMaterial color="#333333" />
       </Plane>
       
-      {/* Piste circulaire */}
-      <Plane args={[28, 28]} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.49, 0]}>
-        <meshStandardMaterial color="#444444" />
-      </Plane>
-      
-      {/* Ligne de départ/arrivée */}
-      <Box args={[4, 0.2, 0.5]} position={[0, 0.1, 0]}>
+      {/* Lignes de la piste */}
+      <Plane args={[0.2, 30]} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.49, 0]}>
         <meshStandardMaterial color="#ffffff" />
-      </Box>
+      </Plane>
+      <Plane args={[30, 0.2]} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.49, 0]}>
+        <meshStandardMaterial color="#ffffff" />
+      </Plane>
       
       {/* Bordures */}
-      {trackSegments}
+      {[-15, 15].map((x, i) => (
+        <Box key={`border-x-${i}`} args={[0.5, 1, 30]} position={[x, 0, 0]}>
+          <meshStandardMaterial color="#ff8800" />
+        </Box>
+      ))}
+      {[-15, 15].map((z, i) => (
+        <Box key={`border-z-${i}`} args={[30, 1, 0.5]} position={[0, 0, z]}>
+          <meshStandardMaterial color="#ff8800" />
+        </Box>
+      ))}
       
-      {/* Checkpoints */}
-      {checkpointMarkers}
+      {/* Checkpoints verts */}
+      <Box args={[2, 0.2, 0.5]} position={[0, 0.1, 10]}>
+        <meshStandardMaterial color="#00ff00" transparent opacity={0.7} />
+      </Box>
+      <Box args={[0.5, 0.2, 2]} position={[10, 0.1, 0]}>
+        <meshStandardMaterial color="#00ff00" transparent opacity={0.7} />
+      </Box>
+      <Box args={[2, 0.2, 0.5]} position={[0, 0.1, -10]}>
+        <meshStandardMaterial color="#00ff00" transparent opacity={0.7} />
+      </Box>
+      <Box args={[0.5, 0.2, 2]} position={[-10, 0.1, 0]}>
+        <meshStandardMaterial color="#00ff00" transparent opacity={0.7} />
+      </Box>
+      
+      {/* Ligne de départ/arrivée */}
+      <Box args={[2, 0.2, 0.5]} position={[0, 0.1, 0]}>
+        <meshStandardMaterial color="#ffffff" />
+      </Box>
     </group>
   );
 }
@@ -243,10 +225,10 @@ function CarCamera({ carPosition }: { carPosition: number[] }) {
   const { camera } = useThree();
   
   useFrame(() => {
-    const cameraOffset = new THREE.Vector3(0, 8, 12);
+    const cameraOffset = new THREE.Vector3(0, 5, 8);
     const targetPosition = new THREE.Vector3(carPosition[0], carPosition[1], carPosition[2]);
     
-    camera.position.lerp(targetPosition.clone().add(cameraOffset), 0.08);
+    camera.position.lerp(targetPosition.clone().add(cameraOffset), 0.05);
     camera.lookAt(targetPosition);
   });
 
@@ -269,7 +251,7 @@ function UI({ currentLap, totalLaps, gameWon, raceTime }: any) {
       borderRadius: '15px',
       minWidth: '250px'
     }}>
-      <h3 style={{ margin: '0 0 15px 0', color: '#ffdd00' }}>🏁 Course Circulaire</h3>
+      <h3 style={{ margin: '0 0 15px 0', color: '#ffdd00' }}>🏁 Course 3 Tours</h3>
       
       <div style={{ fontSize: '20px', marginBottom: '10px', color: '#00ff88' }}>
         Tour: {currentLap}/{totalLaps}
@@ -303,7 +285,7 @@ function UI({ currentLap, totalLaps, gameWon, raceTime }: any) {
 }
 
 const Block: React.FC<BlockProps> = ({ title, description }) => {
-  const [carPosition, setCarPosition] = useState([0, 0, -9]); // Position de départ corrigée sur la piste
+  const [carPosition, setCarPosition] = useState([0, 0, 0]);
   const [currentLap, setCurrentLap] = useState(0);
   const [totalLaps] = useState(3);
   const [gameWon, setGameWon] = useState(false);
@@ -363,20 +345,20 @@ const Block: React.FC<BlockProps> = ({ title, description }) => {
       />
       
       <Canvas
-        camera={{ position: [0, 8, 12], fov: 75 }}
+        camera={{ position: [0, 5, 8], fov: 75 }}
         style={{ background: 'linear-gradient(to top, #87CEEB, #98FB98)' }}
       >
         {/* Éclairage */}
         <ambientLight intensity={0.6} />
-        <directionalLight position={[15, 15, 10]} intensity={1.2} />
+        <directionalLight position={[10, 10, 5]} intensity={1} />
         
-        {/* Piste circulaire */}
-        <CircularTrack />
+        {/* Piste (votre design original) */}
+        <Track />
         
-        {/* Voiture - Position corrigée */}
+        {/* Voiture - Position corrigée au centre */}
         <Car 
-          position={[0, 0, -9]} 
-          rotation={0}
+          position={[0, 0, 0]} 
+          rotation={Math.PI}
           onPositionChange={setCarPosition}
           onLapComplete={handleLapComplete}
         />
