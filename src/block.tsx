@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Box, Plane, Text, Cylinder, Torus } from '@react-three/drei';
-import * THREE from 'three';
+import * as THREE from 'three';
 
 interface BlockProps {
   title?: string;
