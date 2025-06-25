@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Box, Plane, Text, Cylinder, Torus } from '@react-three/drei';
-import * as THREE from 'three';
+import * THREE from 'three';
 
 interface BlockProps {
   title?: string;
@@ -63,8 +63,8 @@ function Car({ position, rotation, onPositionChange, onLapComplete, onRotationCh
       newCheckpoints.checkpoint4 = true;
     }
     
-    // Ligne d'arrivée (tour complet) - Échelle x10
-    if (z > -50 && z < 50 && Math.abs(x) < 50 && 
+    // Ligne d'arrivée (tour complet) - DÉPLACÉE SUR LA ROUTE (côté sud)
+    if (z < -150 && z > -200 && Math.abs(x) < 50 && 
         checkpoints.checkpoint1 && checkpoints.checkpoint2 && 
         checkpoints.checkpoint3 && checkpoints.checkpoint4) {
       // Tour complet !
@@ -360,8 +360,8 @@ function RaceTrack() {
         </Box>
       </group>
       
-      {/* Ligne de départ/arrivée avec damier - PLATE */}
-      <group position={[0, 0.4, 0]}>
+      {/* Ligne de départ/arrivée avec damier - DÉPLACÉE SUR LA ROUTE (côté sud) */}
+      <group position={[0, 0.4, -180]} rotation={[0, 0, 0]}>
         <Box args={[40, 0.1, 10]} position={[0, 0, 0]}>
           <meshStandardMaterial color="#ffffff" />
         </Box>
@@ -371,6 +371,13 @@ function RaceTrack() {
             <meshStandardMaterial color={i % 2 === 0 ? "#000000" : "#ffffff"} />
           </Box>
         ))}
+        {/* Panneau "START/FINISH" au-dessus de la ligne */}
+        <Box args={[50, 8, 2]} position={[0, 8, 0]}>
+          <meshStandardMaterial color="#ffdd00" emissive="#443300" />
+        </Box>
+        <Plane args={[45, 6]} position={[0, 8, 1.1]}>
+          <meshStandardMaterial color="#000000" />
+        </Plane>
       </group>
       
       {/* Éclairage de la piste - Plus de lampadaires */}
@@ -579,8 +586,8 @@ function UI({ currentLap, totalLaps, gameWon, raceTime, cameraMode, onCameraMode
 }
 
 const Block: React.FC<BlockProps> = ({ title, description }) => {
-  const [carPosition, setCarPosition] = useState([0, 1, 0]);
-  const [carRotation, setCarRotation] = useState(Math.PI);
+  const [carPosition, setCarPosition] = useState([0, 1, -180]); // Position de départ près de la ligne d'arrivée
+  const [carRotation, setCarRotation] = useState(0); // Rotation ajustée pour faire face au bon sens
   const [currentLap, setCurrentLap] = useState(0);
   const [totalLaps] = useState(3);
   const [gameWon, setGameWon] = useState(false);
@@ -663,8 +670,8 @@ const Block: React.FC<BlockProps> = ({ title, description }) => {
         
         {/* Voiture améliorée */}
         <Car 
-          position={[0, 1, 0]} 
-          rotation={Math.PI}
+          position={[0, 1, -180]} 
+          rotation={0}
           onPositionChange={setCarPosition}
           onRotationChange={setCarRotation}
           onLapComplete={handleLapComplete}
