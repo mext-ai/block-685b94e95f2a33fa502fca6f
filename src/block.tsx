@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Box, Plane, Text, Cylinder, Torus } from '@react-three/drei';
-import * as THREE from 'three';
+import * THREE from 'three';
 
 interface BlockProps {
   title?: string;
@@ -172,13 +172,13 @@ function Car({ position, rotation, onPositionChange, onLapComplete, onRotationCh
   const [velocity, setVelocity] = useState({ x: 0, z: 0 });
   const keysPressed = useRef<{ [key: string]: boolean }>({});
   
-  // NOUVEAU SYSTÈME DE TOUR SIMPLIFIÉ
+  // SYSTÈME DE TOUR CORRIGÉ - COMPTER IMMÉDIATEMENT LE PREMIER TOUR
   const [lapState, setLapState] = useState({
-    hasStarted: false,
     checkpoint1: false,
     checkpoint2: false,
     checkpoint3: false,
-    lastFinishTime: 0
+    lastFinishTime: 0,
+    isFirstLap: true // NOUVEAU : pour gérer le premier tour
   });
 
   useEffect(() => {
@@ -199,7 +199,7 @@ function Car({ position, rotation, onPositionChange, onLapComplete, onRotationCh
     };
   }, []);
 
-  // SYSTÈME DE DÉTECTION COMPLÈTEMENT REFAIT
+  // SYSTÈME DE DÉTECTION CORRIGÉ - LE PREMIER TOUR COMPTE IMMÉDIATEMENT
   const checkLapProgress = (pos: number[]) => {
     const x = pos[0];
     const z = pos[2];
@@ -208,24 +208,15 @@ function Car({ position, rotation, onPositionChange, onLapComplete, onRotationCh
     // Copie de l'état actuel
     let newLapState = { ...lapState };
     
-    // 1. DÉMARRAGE - Premier passage sur la ligne
-    if (!newLapState.hasStarted && z > -200 && z < -160 && Math.abs(x) < 50) {
-      newLapState.hasStarted = true;
-      newLapState.lastFinishTime = currentTime;
-      console.log("🚦 DÉPART - Course commencée !");
-      setLapState(newLapState);
-      return;
-    }
-    
-    // 2. CHECKPOINT 1 (haut) - seulement si on a démarré
-    if (newLapState.hasStarted && !newLapState.checkpoint1 && z > 150 && Math.abs(x) < 70) {
+    // 1. CHECKPOINT 1 (haut)
+    if (!newLapState.checkpoint1 && z > 150 && Math.abs(x) < 70) {
       newLapState.checkpoint1 = true;
       console.log("✅ CHECKPOINT 1 franchi !");
       setLapState(newLapState);
       return;
     }
     
-    // 3. CHECKPOINT 2 (droite) - seulement si checkpoint 1 passé
+    // 2. CHECKPOINT 2 (droite) - seulement si checkpoint 1 passé
     if (newLapState.checkpoint1 && !newLapState.checkpoint2 && x > 150 && Math.abs(z) < 70) {
       newLapState.checkpoint2 = true;
       console.log("✅ CHECKPOINT 2 franchi !");
@@ -233,7 +224,7 @@ function Car({ position, rotation, onPositionChange, onLapComplete, onRotationCh
       return;
     }
     
-    // 4. CHECKPOINT 3 (gauche) - seulement si checkpoint 2 passé
+    // 3. CHECKPOINT 3 (gauche) - seulement si checkpoint 2 passé
     if (newLapState.checkpoint2 && !newLapState.checkpoint3 && x < -150 && Math.abs(z) < 70) {
       newLapState.checkpoint3 = true;
       console.log("✅ CHECKPOINT 3 franchi !");
@@ -241,27 +232,31 @@ function Car({ position, rotation, onPositionChange, onLapComplete, onRotationCh
       return;
     }
     
-    // 5. LIGNE D'ARRIVÉE - Tour complet
-    if (newLapState.hasStarted && 
-        newLapState.checkpoint1 && 
+    // 4. LIGNE D'ARRIVÉE - Tour complet (pas de délai pour le premier tour)
+    if (newLapState.checkpoint1 && 
         newLapState.checkpoint2 && 
         newLapState.checkpoint3 && 
-        z > -200 && z < -160 && Math.abs(x) < 50 &&
-        (currentTime - newLapState.lastFinishTime) > 5000) { // 5 secondes minimum
+        z > -200 && z < -160 && Math.abs(x) < 50) {
       
-      console.log("🏁 TOUR COMPLET ! Remise à zéro...");
+      // Pour le premier tour : pas de délai minimum
+      // Pour les tours suivants : délai de 3 secondes
+      const minDelay = newLapState.isFirstLap ? 0 : 3000;
       
-      // Signaler le tour complet
-      onLapComplete();
-      
-      // REMISE À ZÉRO COMPLÈTE
-      setLapState({
-        hasStarted: true, // On garde hasStarted à true
-        checkpoint1: false,
-        checkpoint2: false,
-        checkpoint3: false,
-        lastFinishTime: currentTime
-      });
+      if ((currentTime - newLapState.lastFinishTime) > minDelay) {
+        console.log(`🏁 TOUR ${newLapState.isFirstLap ? '1' : 'SUIVANT'} TERMINÉ !`);
+        
+        // Signaler le tour complet
+        onLapComplete();
+        
+        // REMISE À ZÉRO POUR LE TOUR SUIVANT
+        setLapState({
+          checkpoint1: false,
+          checkpoint2: false,
+          checkpoint3: false,
+          lastFinishTime: currentTime,
+          isFirstLap: false // Plus le premier tour
+        });
+      }
     }
   };
 
