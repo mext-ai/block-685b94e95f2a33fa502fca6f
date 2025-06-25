@@ -186,38 +186,115 @@ function Car({ position, rotation, onPositionChange, onLapComplete }: any) {
   );
 }
 
-// Piste 3D procédurale GÉANTE et PLATE
+// Piste 3D procédurale GÉANTE et COMPLÈTEMENT PLATE
 function RaceTrack() {
+  // Créer la piste circulaire avec des segments droits
+  const createCircularTrack = () => {
+    const segments = [];
+    const radius = 180;
+    const trackWidth = 40;
+    const numSegments = 64;
+    
+    for (let i = 0; i < numSegments; i++) {
+      const angle = (i / numSegments) * Math.PI * 2;
+      const x = Math.cos(angle) * radius;
+      const z = Math.sin(angle) * radius;
+      
+      segments.push(
+        <Box 
+          key={i} 
+          args={[trackWidth, 0.5, trackWidth/2]} 
+          position={[x, 0, z]} 
+          rotation={[0, angle, 0]}
+        >
+          <meshStandardMaterial color="#333333" />
+        </Box>
+      );
+    }
+    return segments;
+  };
+
   return (
     <group>
-      {/* Base de la piste - Tore principal GÉANT et PLAT */}
-      <Torus args={[180, 40, 8, 50]} position={[0, 0, 0]} rotation={[Math.PI/2, 0, 0]}>
-        <meshStandardMaterial color="#333333" />
-      </Torus>
-      
-      {/* Surface de route plate supplémentaire */}
-      <Cylinder args={[220, 220, 0.5]} position={[0, -0.3, 0]}>
+      {/* Surface de route plate principale */}
+      <Cylinder args={[220, 220, 0.3]} position={[0, -0.1, 0]}>
         <meshStandardMaterial color="#444444" />
       </Cylinder>
       
-      {/* Lignes blanches sur la piste - Échelle x10 */}
-      <Torus args={[180, 1, 4, 50]} position={[0, 0.1, 0]} rotation={[Math.PI/2, 0, 0]}>
-        <meshStandardMaterial color="#ffffff" />
-      </Torus>
-      <Torus args={[160, 1, 4, 50]} position={[0, 0.1, 0]} rotation={[Math.PI/2, 0, 0]}>
-        <meshStandardMaterial color="#ffffff" />
-      </Torus>
-      <Torus args={[200, 1, 4, 50]} position={[0, 0.1, 0]} rotation={[Math.PI/2, 0, 0]}>
-        <meshStandardMaterial color="#ffffff" />
-      </Torus>
+      {/* Piste circulaire avec segments */}
+      {createCircularTrack()}
       
-      {/* Bordures de sécurité - Échelle x10 */}
-      <Torus args={[140, 3, 8, 50]} position={[0, 1.5, 0]} rotation={[Math.PI/2, 0, 0]}>
-        <meshStandardMaterial color="#ff0000" />
-      </Torus>
-      <Torus args={[220, 3, 8, 50]} position={[0, 1.5, 0]} rotation={[Math.PI/2, 0, 0]}>
-        <meshStandardMaterial color="#ff0000" />
-      </Torus>
+      {/* Lignes blanches centrales - Segments plats */}
+      {Array.from({ length: 64 }).map((_, i) => {
+        const angle = (i / 64) * Math.PI * 2;
+        const x = Math.cos(angle) * 180;
+        const z = Math.sin(angle) * 180;
+        return (
+          <Box 
+            key={i} 
+            args={[2, 0.1, 8]} 
+            position={[x, 0.3, z]} 
+            rotation={[0, angle, 0]}
+          >
+            <meshStandardMaterial color="#ffffff" />
+          </Box>
+        );
+      })}
+      
+      {/* Lignes blanches intérieures */}
+      {Array.from({ length: 64 }).map((_, i) => {
+        const angle = (i / 64) * Math.PI * 2;
+        const x = Math.cos(angle) * 160;
+        const z = Math.sin(angle) * 160;
+        return (
+          <Box 
+            key={i} 
+            args={[2, 0.1, 8]} 
+            position={[x, 0.3, z]} 
+            rotation={[0, angle, 0]}
+          >
+            <meshStandardMaterial color="#ffffff" />
+          </Box>
+        );
+      })}
+      
+      {/* Lignes blanches extérieures */}
+      {Array.from({ length: 64 }).map((_, i) => {
+        const angle = (i / 64) * Math.PI * 2;
+        const x = Math.cos(angle) * 200;
+        const z = Math.sin(angle) * 200;
+        return (
+          <Box 
+            key={i} 
+            args={[2, 0.1, 8]} 
+            position={[x, 0.3, z]} 
+            rotation={[0, angle, 0]}
+          >
+            <meshStandardMaterial color="#ffffff" />
+          </Box>
+        );
+      })}
+      
+      {/* Bordures de sécurité PLATES */}
+      {Array.from({ length: 64 }).map((_, i) => {
+        const angle = (i / 64) * Math.PI * 2;
+        const xInner = Math.cos(angle) * 140;
+        const zInner = Math.sin(angle) * 140;
+        const xOuter = Math.cos(angle) * 220;
+        const zOuter = Math.sin(angle) * 220;
+        return (
+          <group key={i}>
+            {/* Bordure intérieure */}
+            <Box args={[6, 2, 6]} position={[xInner, 1, zInner]}>
+              <meshStandardMaterial color="#ff0000" />
+            </Box>
+            {/* Bordure extérieure */}
+            <Box args={[6, 2, 6]} position={[xOuter, 1, zOuter]}>
+              <meshStandardMaterial color="#ff0000" />
+            </Box>
+          </group>
+        );
+      })}
       
       {/* Herbe autour de la piste - GÉANTE */}
       <Cylinder args={[300, 300, 0.2]} position={[0, -0.5, 0]}>
@@ -262,7 +339,7 @@ function RaceTrack() {
         );
       })}
       
-      {/* Checkpoints lumineux - Échelle x10 */}
+      {/* Checkpoints lumineux - PLATS */}
       <group>
         {/* Checkpoint 1 (haut) */}
         <Box args={[30, 8, 2]} position={[0, 6, 180]}>
@@ -282,14 +359,14 @@ function RaceTrack() {
         </Box>
       </group>
       
-      {/* Ligne de départ/arrivée avec damier - Échelle x10 */}
-      <group position={[0, 0.1, 0]}>
-        <Box args={[40, 0.5, 10]} position={[0, 0, 0]}>
+      {/* Ligne de départ/arrivée avec damier - PLATE */}
+      <group position={[0, 0.4, 0]}>
+        <Box args={[40, 0.1, 10]} position={[0, 0, 0]}>
           <meshStandardMaterial color="#ffffff" />
         </Box>
         {/* Motif damier */}
         {Array.from({ length: 20 }).map((_, i) => (
-          <Box key={i} args={[2, 0.6, 8]} position={[-20 + i * 2, 0, 0]}>
+          <Box key={i} args={[2, 0.2, 8]} position={[-20 + i * 2, 0, 0]}>
             <meshStandardMaterial color={i % 2 === 0 ? "#000000" : "#ffffff"} />
           </Box>
         ))}
@@ -350,7 +427,7 @@ function UI({ currentLap, totalLaps, gameWon, raceTime }: any) {
       border: '2px solid #ffdd00'
     }}>
       <h3 style={{ margin: '0 0 15px 0', color: '#ffdd00', textAlign: 'center' }}>
-        🏁 Circuit F1 - MEGA PISTE
+        🏁 Circuit F1 - PISTE PLATE
       </h3>
       
       <div style={{ 
@@ -478,7 +555,7 @@ const Block: React.FC<BlockProps> = ({ title, description }) => {
         <directionalLight position={[-75, 75, -50]} intensity={0.8} />
         <pointLight position={[0, 50, 0]} intensity={1} color="#ffffff" />
         
-        {/* Piste 3D procédurale GÉANTE */}
+        {/* Piste 3D procédurale COMPLÈTEMENT PLATE */}
         <RaceTrack />
         
         {/* Voiture améliorée */}
