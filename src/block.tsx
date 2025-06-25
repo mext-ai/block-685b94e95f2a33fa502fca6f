@@ -8,6 +8,162 @@ interface BlockProps {
   description?: string;
 }
 
+// Menu de démarrage
+function StartMenu({ onStartGame }: { onStartGame: () => void }) {
+  return (
+    <div style={{
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      background: 'linear-gradient(135deg, #ff6b6b 0%, #feca57 25%, #48dbfb 50%, #ff9ff3 75%, #54a0ff 100%)',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 2000,
+      fontFamily: 'Arial, sans-serif'
+    }}>
+      {/* Titre principal */}
+      <div style={{
+        fontSize: '4rem',
+        fontWeight: 'bold',
+        color: '#fff',
+        textShadow: '4px 4px 8px rgba(0,0,0,0.3)',
+        marginBottom: '20px',
+        textAlign: 'center',
+        animation: 'titlePulse 2s ease-in-out infinite'
+      }}>
+        🏎️ SUPER RACING 3D 🏁
+      </div>
+
+      {/* Sous-titre */}
+      <div style={{
+        fontSize: '1.5rem',
+        color: '#fff',
+        textShadow: '2px 2px 4px rgba(0,0,0,0.3)',
+        marginBottom: '40px',
+        textAlign: 'center'
+      }}>
+        Prêt pour la course de ta vie ?
+      </div>
+
+      {/* Émojis animés */}
+      <div style={{
+        fontSize: '3rem',
+        marginBottom: '40px',
+        animation: 'bounce 1s ease-in-out infinite'
+      }}>
+        🏆 🏎️ 💨 ⚡ 🏁
+      </div>
+
+      {/* Bouton Play */}
+      <button
+        onClick={onStartGame}
+        style={{
+          fontSize: '2rem',
+          fontWeight: 'bold',
+          color: '#fff',
+          background: 'linear-gradient(45deg, #ff6b6b, #ff8e53)',
+          border: 'none',
+          borderRadius: '50px',
+          padding: '20px 60px',
+          cursor: 'pointer',
+          textShadow: '2px 2px 4px rgba(0,0,0,0.3)',
+          boxShadow: '0 8px 25px rgba(255,107,107,0.4)',
+          transition: 'all 0.3s ease',
+          transform: 'scale(1)',
+          animation: 'buttonGlow 2s ease-in-out infinite'
+        }}
+        onMouseEnter={(e) => {
+          e.target.style.transform = 'scale(1.1)';
+          e.target.style.boxShadow = '0 12px 35px rgba(255,107,107,0.6)';
+        }}
+        onMouseLeave={(e) => {
+          e.target.style.transform = 'scale(1)';
+          e.target.style.boxShadow = '0 8px 25px rgba(255,107,107,0.4)';
+        }}
+      >
+        🚀 JOUER ! 🚀
+      </button>
+
+      {/* Instructions */}
+      <div style={{
+        marginTop: '40px',
+        background: 'rgba(255,255,255,0.9)',
+        borderRadius: '15px',
+        padding: '20px',
+        maxWidth: '500px',
+        textAlign: 'center',
+        color: '#333',
+        boxShadow: '0 8px 25px rgba(0,0,0,0.2)'
+      }}>
+        <h3 style={{ margin: '0 0 15px 0', color: '#ff6b6b' }}>🎮 Comment jouer :</h3>
+        <div style={{ fontSize: '14px', lineHeight: '1.6' }}>
+          <div>🔸 <strong>↑/W</strong> - Accélérer</div>
+          <div>🔸 <strong>↓/S</strong> - Freiner</div>
+          <div>🔸 <strong>←/A</strong> - Tourner à gauche</div>
+          <div>🔸 <strong>→/D</strong> - Tourner à droite</div>
+          <div style={{ marginTop: '10px', color: '#666' }}>
+            Passe tous les checkpoints verts et termine 3 tours !
+          </div>
+        </div>
+      </div>
+
+      {/* Voitures animées en arrière-plan */}
+      <div style={{
+        position: 'absolute',
+        top: '20%',
+        left: '-100px',
+        fontSize: '3rem',
+        animation: 'carMove1 8s linear infinite'
+      }}>
+        🏎️
+      </div>
+      <div style={{
+        position: 'absolute',
+        top: '60%',
+        right: '-100px',
+        fontSize: '3rem',
+        animation: 'carMove2 10s linear infinite'
+      }}>
+        🏁
+      </div>
+
+      {/* Styles CSS intégrés */}
+      <style>
+        {`
+          @keyframes titlePulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+          }
+          
+          @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+          }
+          
+          @keyframes buttonGlow {
+            0%, 100% { box-shadow: 0 8px 25px rgba(255,107,107,0.4); }
+            50% { box-shadow: 0 8px 35px rgba(255,107,107,0.7); }
+          }
+          
+          @keyframes carMove1 {
+            0% { left: -100px; }
+            100% { left: 100%; }
+          }
+          
+          @keyframes carMove2 {
+            0% { right: -100px; }
+            100% { right: 100%; }
+          }
+        `}
+      </style>
+    </div>
+  );
+}
+
 // Composant de la voiture
 function Car({ position, rotation, onPositionChange, onLapComplete, onRotationChange }: any) {
   const carRef = useRef<THREE.Group>(null);
@@ -47,7 +203,7 @@ function Car({ position, rotation, onPositionChange, onLapComplete, onRotationCh
     let newCheckpoints = { ...checkpoints };
     
     // Détection du démarrage (premier passage sur la ligne d'arrivée)
-    if (!hasStarted && z > -190 && z < -170 && Math.abs(x) < 50) {
+    if (!hasStarted && z > -200 && z < -160 && Math.abs(x) < 50) {
       setHasStarted(true);
       return; // Ne pas compter comme un tour complet
     }
@@ -66,7 +222,7 @@ function Car({ position, rotation, onPositionChange, onLapComplete, onRotationCh
     }
     
     // Ligne d'arrivée (tour complet) - PERPENDICULAIRE À LA ROUTE (côté sud)
-    if (z > -190 && z < -170 && Math.abs(x) < 50 && 
+    if (z > -200 && z < -160 && Math.abs(x) < 50 && 
         checkpoints.checkpoint1 && checkpoints.checkpoint2 && checkpoints.checkpoint3 && hasStarted) {
       // Tour complet !
       onLapComplete();
@@ -602,6 +758,7 @@ function UI({ currentLap, totalLaps, gameWon, raceTime, cameraMode, onCameraMode
 }
 
 const Block: React.FC<BlockProps> = ({ title, description }) => {
+  const [gameStarted, setGameStarted] = useState(false);
   const [carPosition, setCarPosition] = useState([0, 1, -200]); // Position de départ AVANT la ligne d'arrivée
   const [carRotation, setCarRotation] = useState(0); // Rotation 0° pour être perpendiculaire à la ligne d'arrivée
   const [currentLap, setCurrentLap] = useState(0);
@@ -610,6 +767,10 @@ const Block: React.FC<BlockProps> = ({ title, description }) => {
   const [startTime] = useState(Date.now());
   const [raceTime, setRaceTime] = useState(0);
   const [cameraMode, setCameraMode] = useState('follow'); // 'follow', 'cockpit', 'aerial'
+
+  const handleStartGame = () => {
+    setGameStarted(true);
+  };
 
   const handleLapComplete = () => {
     if (!gameWon) {
@@ -638,12 +799,18 @@ const Block: React.FC<BlockProps> = ({ title, description }) => {
   };
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setRaceTime(Date.now() - startTime);
-    }, 100);
-    
-    return () => clearInterval(timer);
-  }, [startTime]);
+    if (gameStarted) {
+      const timer = setInterval(() => {
+        setRaceTime(Date.now() - startTime);
+      }, 100);
+      
+      return () => clearInterval(timer);
+    }
+  }, [startTime, gameStarted]);
+
+  if (!gameStarted) {
+    return <StartMenu onStartGame={handleStartGame} />;
+  }
 
   return (
     <div style={{ width: '100%', height: '100vh', position: 'relative' }}>
