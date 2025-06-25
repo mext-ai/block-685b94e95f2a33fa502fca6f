@@ -340,24 +340,59 @@ function RaceTrack() {
         );
       })}
       
-      {/* Checkpoints lumineux - PERPENDICULAIRES À LA ROUTE */}
+      {/* Checkpoints - LIGNES VERTES AU SOL */}
       <group>
-        {/* Checkpoint 1 (haut) - Perpendiculaire à la route */}
-        <Box args={[3, 8, 60]} position={[0, 6, 180]}>
-          <meshStandardMaterial color="#00ff00" emissive="#004400" />
-        </Box>
-        {/* Checkpoint 2 (droite) - Perpendiculaire à la route */}
-        <Box args={[60, 8, 3]} position={[180, 6, 0]}>
-          <meshStandardMaterial color="#00ff00" emissive="#004400" />
-        </Box>
-        {/* Checkpoint 3 (bas) - Perpendiculaire à la route */}
-        <Box args={[3, 8, 60]} position={[0, 6, -180]}>
-          <meshStandardMaterial color="#00ff00" emissive="#004400" />
-        </Box>
-        {/* Checkpoint 4 (gauche) - Perpendiculaire à la route */}
-        <Box args={[60, 8, 3]} position={[-180, 6, 0]}>
-          <meshStandardMaterial color="#00ff00" emissive="#004400" />
-        </Box>
+        {/* Checkpoint 1 (haut) - Ligne verte striée */}
+        <group position={[0, 0.3, 180]}>
+          <Box args={[2, 0.2, 60]} position={[0, 0, 0]}>
+            <meshStandardMaterial color="#00ff00" emissive="#004400" />
+          </Box>
+          {/* Rayures vertes alternées */}
+          {Array.from({ length: 20 }).map((_, i) => (
+            <Box key={i} args={[1, 0.3, 3]} position={[0, 0, -30 + i * 3]}>
+              <meshStandardMaterial color={i % 2 === 0 ? "#00ff00" : "#00cc00"} emissive="#002200" />
+            </Box>
+          ))}
+        </group>
+        
+        {/* Checkpoint 2 (droite) - Ligne verte striée */}
+        <group position={[180, 0.3, 0]}>
+          <Box args={[60, 0.2, 2]} position={[0, 0, 0]}>
+            <meshStandardMaterial color="#00ff00" emissive="#004400" />
+          </Box>
+          {/* Rayures vertes alternées */}
+          {Array.from({ length: 20 }).map((_, i) => (
+            <Box key={i} args={[3, 0.3, 1]} position={[-30 + i * 3, 0, 0]}>
+              <meshStandardMaterial color={i % 2 === 0 ? "#00ff00" : "#00cc00"} emissive="#002200" />
+            </Box>
+          ))}
+        </group>
+        
+        {/* Checkpoint 3 (bas) - Ligne verte striée */}
+        <group position={[0, 0.3, -180]}>
+          <Box args={[2, 0.2, 60]} position={[0, 0, 0]}>
+            <meshStandardMaterial color="#00ff00" emissive="#004400" />
+          </Box>
+          {/* Rayures vertes alternées */}
+          {Array.from({ length: 20 }).map((_, i) => (
+            <Box key={i} args={[1, 0.3, 3]} position={[0, 0, -30 + i * 3]}>
+              <meshStandardMaterial color={i % 2 === 0 ? "#00ff00" : "#00cc00"} emissive="#002200" />
+            </Box>
+          ))}
+        </group>
+        
+        {/* Checkpoint 4 (gauche) - Ligne verte striée */}
+        <group position={[-180, 0.3, 0]}>
+          <Box args={[60, 0.2, 2]} position={[0, 0, 0]}>
+            <meshStandardMaterial color="#00ff00" emissive="#004400" />
+          </Box>
+          {/* Rayures vertes alternées */}
+          {Array.from({ length: 20 }).map((_, i) => (
+            <Box key={i} args={[3, 0.3, 1]} position={[-30 + i * 3, 0, 0]}>
+              <meshStandardMaterial color={i % 2 === 0 ? "#00ff00" : "#00cc00"} emissive="#002200" />
+            </Box>
+          ))}
+        </group>
       </group>
       
       {/* Ligne de départ/arrivée avec damier - PERPENDICULAIRE À LA ROUTE (côté sud) */}
@@ -587,8 +622,8 @@ function UI({ currentLap, totalLaps, gameWon, raceTime, cameraMode, onCameraMode
 }
 
 const Block: React.FC<BlockProps> = ({ title, description }) => {
-  const [carPosition, setCarPosition] = useState([0, 1, -180]); // Position de départ près de la ligne d'arrivée
-  const [carRotation, setCarRotation] = useState(0); // Rotation ajustée pour faire face au bon sens
+  const [carPosition, setCarPosition] = useState([0, 1, -200]); // Position de départ AVANT la ligne d'arrivée
+  const [carRotation, setCarRotation] = useState(0); // Rotation face à la ligne d'arrivée
   const [currentLap, setCurrentLap] = useState(0);
   const [totalLaps] = useState(3);
   const [gameWon, setGameWon] = useState(false);
@@ -671,7 +706,7 @@ const Block: React.FC<BlockProps> = ({ title, description }) => {
         
         {/* Voiture améliorée */}
         <Car 
-          position={[0, 1, -180]} 
+          position={[0, 1, -200]} 
           rotation={0}
           onPositionChange={setCarPosition}
           onRotationChange={setCarRotation}
