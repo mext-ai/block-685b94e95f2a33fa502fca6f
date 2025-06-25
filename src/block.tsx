@@ -20,6 +20,7 @@ function Car({ position, rotation, onPositionChange, onLapComplete, onRotationCh
     checkpoint2: false,
     checkpoint3: false
   });
+  const [hasStarted, setHasStarted] = useState(false); // Pour détecter le premier passage sur la ligne
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -45,22 +46,28 @@ function Car({ position, rotation, onPositionChange, onLapComplete, onRotationCh
     const z = pos[2];
     let newCheckpoints = { ...checkpoints };
     
+    // Détection du démarrage (premier passage sur la ligne d'arrivée)
+    if (!hasStarted && z > -190 && z < -170 && Math.abs(x) < 50) {
+      setHasStarted(true);
+      return; // Ne pas compter comme un tour complet
+    }
+    
     // Checkpoint 1 (haut de la piste) - Échelle x10
-    if (z > 150 && Math.abs(x) < 50 && !checkpoints.checkpoint1) {
+    if (z > 150 && Math.abs(x) < 50 && !checkpoints.checkpoint1 && hasStarted) {
       newCheckpoints.checkpoint1 = true;
     }
     // Checkpoint 2 (droite de la piste) - Échelle x10
-    if (x > 150 && Math.abs(z) < 50 && checkpoints.checkpoint1 && !checkpoints.checkpoint2) {
+    if (x > 150 && Math.abs(z) < 50 && checkpoints.checkpoint1 && !checkpoints.checkpoint2 && hasStarted) {
       newCheckpoints.checkpoint2 = true;
     }
     // Checkpoint 3 (gauche de la piste) - Échelle x10
-    if (x < -150 && Math.abs(z) < 50 && checkpoints.checkpoint2 && !checkpoints.checkpoint3) {
+    if (x < -150 && Math.abs(z) < 50 && checkpoints.checkpoint2 && !checkpoints.checkpoint3 && hasStarted) {
       newCheckpoints.checkpoint3 = true;
     }
     
     // Ligne d'arrivée (tour complet) - PERPENDICULAIRE À LA ROUTE (côté sud)
-    if (z < -150 && z > -200 && Math.abs(x) < 50 && 
-        checkpoints.checkpoint1 && checkpoints.checkpoint2 && checkpoints.checkpoint3) {
+    if (z > -190 && z < -170 && Math.abs(x) < 50 && 
+        checkpoints.checkpoint1 && checkpoints.checkpoint2 && checkpoints.checkpoint3 && hasStarted) {
       // Tour complet !
       onLapComplete();
       newCheckpoints = {
@@ -596,7 +603,7 @@ function UI({ currentLap, totalLaps, gameWon, raceTime, cameraMode, onCameraMode
 
 const Block: React.FC<BlockProps> = ({ title, description }) => {
   const [carPosition, setCarPosition] = useState([0, 1, -200]); // Position de départ AVANT la ligne d'arrivée
-  const [carRotation, setCarRotation] = useState(Math.PI); // Rotation +180° pour faire face à la ligne d'arrivée
+  const [carRotation, setCarRotation] = useState(0); // Rotation 0° pour être perpendiculaire à la ligne d'arrivée
   const [currentLap, setCurrentLap] = useState(0);
   const [totalLaps] = useState(3);
   const [gameWon, setGameWon] = useState(false);
@@ -680,7 +687,7 @@ const Block: React.FC<BlockProps> = ({ title, description }) => {
         {/* Voiture améliorée */}
         <Car 
           position={[0, 1, -200]} 
-          rotation={Math.PI}
+          rotation={0}
           onPositionChange={setCarPosition}
           onRotationChange={setCarRotation}
           onLapComplete={handleLapComplete}
