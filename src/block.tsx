@@ -18,8 +18,7 @@ function Car({ position, rotation, onPositionChange, onLapComplete, onRotationCh
   const [checkpoints, setCheckpoints] = useState({
     checkpoint1: false,
     checkpoint2: false,
-    checkpoint3: false,
-    checkpoint4: false
+    checkpoint3: false
   });
 
   useEffect(() => {
@@ -54,26 +53,20 @@ function Car({ position, rotation, onPositionChange, onLapComplete, onRotationCh
     if (x > 150 && Math.abs(z) < 50 && checkpoints.checkpoint1 && !checkpoints.checkpoint2) {
       newCheckpoints.checkpoint2 = true;
     }
-    // Checkpoint 3 (bas de la piste) - Échelle x10
-    if (z < -150 && Math.abs(x) < 50 && checkpoints.checkpoint2 && !checkpoints.checkpoint3) {
+    // Checkpoint 3 (gauche de la piste) - Échelle x10
+    if (x < -150 && Math.abs(z) < 50 && checkpoints.checkpoint2 && !checkpoints.checkpoint3) {
       newCheckpoints.checkpoint3 = true;
-    }
-    // Checkpoint 4 (gauche de la piste) - Échelle x10
-    if (x < -150 && Math.abs(z) < 50 && checkpoints.checkpoint3 && !checkpoints.checkpoint4) {
-      newCheckpoints.checkpoint4 = true;
     }
     
     // Ligne d'arrivée (tour complet) - PERPENDICULAIRE À LA ROUTE (côté sud)
     if (z < -150 && z > -200 && Math.abs(x) < 50 && 
-        checkpoints.checkpoint1 && checkpoints.checkpoint2 && 
-        checkpoints.checkpoint3 && checkpoints.checkpoint4) {
+        checkpoints.checkpoint1 && checkpoints.checkpoint2 && checkpoints.checkpoint3) {
       // Tour complet !
       onLapComplete();
       newCheckpoints = {
         checkpoint1: false,
         checkpoint2: false,
-        checkpoint3: false,
-        checkpoint4: false
+        checkpoint3: false
       };
     }
     
@@ -340,7 +333,7 @@ function RaceTrack() {
         );
       })}
       
-      {/* Checkpoints - LIGNES VERTES AU SOL */}
+      {/* Checkpoints - LIGNES VERTES AU SOL (seulement 3 checkpoints) */}
       <group>
         {/* Checkpoint 1 (haut) - Ligne verte striée */}
         <group position={[0, 0.3, 180]}>
@@ -368,20 +361,7 @@ function RaceTrack() {
           ))}
         </group>
         
-        {/* Checkpoint 3 (bas) - Ligne verte striée */}
-        <group position={[0, 0.3, -180]}>
-          <Box args={[2, 0.2, 60]} position={[0, 0, 0]}>
-            <meshStandardMaterial color="#00ff00" emissive="#004400" />
-          </Box>
-          {/* Rayures vertes alternées */}
-          {Array.from({ length: 20 }).map((_, i) => (
-            <Box key={i} args={[1, 0.3, 3]} position={[0, 0, -30 + i * 3]}>
-              <meshStandardMaterial color={i % 2 === 0 ? "#00ff00" : "#00cc00"} emissive="#002200" />
-            </Box>
-          ))}
-        </group>
-        
-        {/* Checkpoint 4 (gauche) - Ligne verte striée */}
+        {/* Checkpoint 3 (gauche) - Ligne verte striée */}
         <group position={[-180, 0.3, 0]}>
           <Box args={[60, 0.2, 2]} position={[0, 0, 0]}>
             <meshStandardMaterial color="#00ff00" emissive="#004400" />
@@ -407,13 +387,6 @@ function RaceTrack() {
             <meshStandardMaterial color={i % 2 === 0 ? "#000000" : "#ffffff"} />
           </Box>
         ))}
-        {/* Panneau "START/FINISH" au-dessus de la ligne */}
-        <Box args={[8, 50, 2]} position={[0, 8, 0]} rotation={[0, Math.PI/2, 0]}>
-          <meshStandardMaterial color="#ffdd00" emissive="#443300" />
-        </Box>
-        <Plane args={[6, 45]} position={[0, 8, 1.1]} rotation={[0, Math.PI/2, 0]}>
-          <meshStandardMaterial color="#000000" />
-        </Plane>
       </group>
       
       {/* Éclairage de la piste - Plus de lampadaires */}
@@ -623,7 +596,7 @@ function UI({ currentLap, totalLaps, gameWon, raceTime, cameraMode, onCameraMode
 
 const Block: React.FC<BlockProps> = ({ title, description }) => {
   const [carPosition, setCarPosition] = useState([0, 1, -200]); // Position de départ AVANT la ligne d'arrivée
-  const [carRotation, setCarRotation] = useState(0); // Rotation face à la ligne d'arrivée
+  const [carRotation, setCarRotation] = useState(Math.PI); // Rotation +180° pour faire face à la ligne d'arrivée
   const [currentLap, setCurrentLap] = useState(0);
   const [totalLaps] = useState(3);
   const [gameWon, setGameWon] = useState(false);
@@ -707,7 +680,7 @@ const Block: React.FC<BlockProps> = ({ title, description }) => {
         {/* Voiture améliorée */}
         <Car 
           position={[0, 1, -200]} 
-          rotation={0}
+          rotation={Math.PI}
           onPositionChange={setCarPosition}
           onRotationChange={setCarRotation}
           onLapComplete={handleLapComplete}
