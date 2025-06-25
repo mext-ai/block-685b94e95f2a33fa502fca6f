@@ -495,7 +495,7 @@ function RaceTrack() {
             {/* Tronc */}
             <Cylinder args={[2, 3, 15]} position={[0, 7.5, 0]}>
               <meshStandardMaterial color="#8B4513" />
-            </Box>
+            </Cylinder>
             {/* Feuillage */}
             <Box args={[12, 12, 12]} position={[0, 18, 0]}>
               <meshStandardMaterial color="#006400" />
