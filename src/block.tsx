@@ -46,7 +46,7 @@ function StartMenu({ onStartGame }: { onStartGame: () => void }) {
         marginBottom: '40px',
         textAlign: 'center'
       }}>
-        Circuit F1 avec virages et lignes droites !
+        Prêt pour la course de ta vie ?
       </div>
 
       {/* Émojis animés */}
@@ -113,6 +113,26 @@ function StartMenu({ onStartGame }: { onStartGame: () => void }) {
         </div>
       </div>
 
+      {/* Voitures animées en arrière-plan */}
+      <div style={{
+        position: 'absolute',
+        top: '20%',
+        left: '-100px',
+        fontSize: '3rem',
+        animation: 'carMove1 8s linear infinite'
+      }}>
+        🏎️
+      </div>
+      <div style={{
+        position: 'absolute',
+        top: '60%',
+        right: '-100px',
+        fontSize: '3rem',
+        animation: 'carMove2 10s linear infinite'
+      }}>
+        🏁
+      </div>
+
       {/* Styles CSS intégrés */}
       <style>
         {`
@@ -130,13 +150,23 @@ function StartMenu({ onStartGame }: { onStartGame: () => void }) {
             0%, 100% { box-shadow: 0 8px 25px rgba(255,107,107,0.4); }
             50% { box-shadow: 0 8px 35px rgba(255,107,107,0.7); }
           }
+          
+          @keyframes carMove1 {
+            0% { left: -100px; }
+            100% { left: 100%; }
+          }
+          
+          @keyframes carMove2 {
+            0% { right: -100px; }
+            100% { right: 100%; }
+          }
         `}
       </style>
     </div>
   );
 }
 
-// Composant de la voiture avec système de collision amélioré
+// Composant de la voiture avec SYSTÈME DE COLLISION
 function Car({ position, rotation, onPositionChange, onLapComplete, onRotationChange }: any) {
   const carRef = useRef<THREE.Group>(null);
   const [carPosition, setCarPosition] = useState(position);
@@ -144,13 +174,13 @@ function Car({ position, rotation, onPositionChange, onLapComplete, onRotationCh
   const [velocity, setVelocity] = useState({ x: 0, z: 0 });
   const keysPressed = useRef<{ [key: string]: boolean }>({});
   
-  // Système de tour avec checkpoints
+  // SYSTÈME DE TOUR AVEC ORDRE CORRIGÉ DES CHECKPOINTS
   const [lapProgress, setLapProgress] = useState({
     currentLap: 0,
     checkpoints: {
-      checkpoint1: false, // Nord (z > 150)
-      checkpoint2: false, // Est (x > 150)
-      checkpoint3: false  // Ouest (x < -150)
+      checkpoint1: false, // DROITE (x > 150) - Premier checkpoint dans le sens de circulation
+      checkpoint2: false, // HAUT (z > 150) - Deuxième checkpoint
+      checkpoint3: false  // GAUCHE (x < -150) - Troisième checkpoint
     },
     lastLapTime: 0,
     canFinishLap: false
@@ -174,104 +204,96 @@ function Car({ position, rotation, onPositionChange, onLapComplete, onRotationCh
     };
   }, []);
 
-  // Fonction pour vérifier si on est sur la piste
-  const isOnTrack = (x: number, z: number) => {
-    const trackWidth = 50;
-    
-    // Ligne droite sud (départ)
-    if (Math.abs(x) < trackWidth && z >= -250 && z <= -100) return true;
-    
-    // Ligne droite nord
-    if (Math.abs(x) < trackWidth && z >= 100 && z <= 250) return true;
-    
-    // Ligne droite est
-    if (Math.abs(z) < trackWidth && x >= 100 && x <= 250) return true;
-    
-    // Ligne droite ouest
-    if (Math.abs(z) < trackWidth && x >= -250 && x <= -100) return true;
-    
-    // Virage nord-est
-    const neDistance = Math.sqrt((x - 150) ** 2 + (z - 150) ** 2);
-    if (neDistance >= 100 - trackWidth && neDistance <= 100 + trackWidth) return true;
-    
-    // Virage sud-est
-    const seDistance = Math.sqrt((x - 150) ** 2 + (z + 150) ** 2);
-    if (seDistance >= 100 - trackWidth && seDistance <= 100 + trackWidth) return true;
-    
-    // Virage sud-ouest
-    const swDistance = Math.sqrt((x + 150) ** 2 + (z + 150) ** 2);
-    if (swDistance >= 100 - trackWidth && swDistance <= 100 + trackWidth) return true;
-    
-    // Virage nord-ouest
-    const nwDistance = Math.sqrt((x + 150) ** 2 + (z - 150) ** 2);
-    if (nwDistance >= 100 - trackWidth && nwDistance <= 100 + trackWidth) return true;
-    
-    return false;
-  };
-
-  // Système de collision
-  const checkCollisions = (newPos: number[]) => {
+  // SYSTÈME DE COLLISION AVEC LES BARRIÈRES
+  const checkBarrierCollisions = (newPos: number[]) => {
     const x = newPos[0];
     const z = newPos[2];
+    const carRadius = 3; // Rayon de collision de la voiture
     
-    if (!isOnTrack(x, z)) {
-      // Ramener vers la position précédente
+    // Calculer la distance du centre (0,0)
+    const distanceFromCenter = Math.sqrt(x * x + z * z);
+    
+    // COLLISION AVEC BARRIÈRE EXTÉRIEURE (rayon ~235)
+    if (distanceFromCenter > 235 - carRadius) {
+      // Calculer la direction vers le centre
+      const angle = Math.atan2(z, x);
+      const maxDistance = 235 - carRadius;
       return [
-        carPosition[0] + (x - carPosition[0]) * 0.1,
+        Math.cos(angle) * maxDistance,
         newPos[1],
-        carPosition[2] + (z - carPosition[2]) * 0.1
+        Math.sin(angle) * maxDistance
       ];
     }
     
-    return newPos;
+    // COLLISION AVEC BARRIÈRE INTÉRIEURE (rayon ~145)
+    if (distanceFromCenter < 145 + carRadius) {
+      // Calculer la direction vers l'extérieur
+      const angle = Math.atan2(z, x);
+      const minDistance = 145 + carRadius;
+      return [
+        Math.cos(angle) * minDistance,
+        newPos[1],
+        Math.sin(angle) * minDistance
+      ];
+    }
+    
+    return newPos; // Pas de collision
   };
 
-  // Détection des checkpoints
+  // LOGIQUE DE DÉTECTION ÉLARGIE : CHECKPOINTS COUVRANT TOUTE LA LARGEUR DE LA ROUTE
   const checkLapProgress = (pos: number[]) => {
     const x = pos[0];
     const z = pos[2];
     const currentTime = Date.now();
     
+    // Créer une copie de l'état actuel
     const newProgress = { ...lapProgress };
     let stateChanged = false;
 
-    // Checkpoint 1 - Nord (z > 150)
-    if (!newProgress.checkpoints.checkpoint1 && z > 150 && Math.abs(x) < 100) {
+    // CHECKPOINT 1 - DROITE de la piste (x > 140) - ZONE ÉLARGIE pour couvrir toute la largeur
+    // Zone élargie : de x=140 à x=220 (toute la largeur de la route), z entre -100 et +100
+    if (!newProgress.checkpoints.checkpoint1 && x > 140 && x < 220 && z > -100 && z < 100) {
       newProgress.checkpoints.checkpoint1 = true;
       stateChanged = true;
-      console.log("✅ CHECKPOINT 1 (NORD) franchi !");
+      console.log("✅ CHECKPOINT 1 (DROITE) franchi ! Zone élargie activée.");
     }
     
-    // Checkpoint 2 - Est (x > 150) 
+    // CHECKPOINT 2 - HAUT de la piste (z > 140) - ZONE ÉLARGIE pour couvrir toute la largeur
+    // Zone élargie : de z=140 à z=220 (toute la largeur de la route), x entre -100 et +100
     else if (newProgress.checkpoints.checkpoint1 && 
              !newProgress.checkpoints.checkpoint2 && 
-             x > 150 && Math.abs(z) < 100) {
+             z > 140 && z < 220 && x > -100 && x < 100) {
       newProgress.checkpoints.checkpoint2 = true;
       stateChanged = true;
-      console.log("✅ CHECKPOINT 2 (EST) franchi !");
+      console.log("✅ CHECKPOINT 2 (HAUT) franchi ! Zone élargie activée.");
     }
     
-    // Checkpoint 3 - Ouest (x < -150)
+    // CHECKPOINT 3 - GAUCHE de la piste (x < -140) - ZONE ÉLARGIE pour couvrir toute la largeur
+    // Zone élargie : de x=-220 à x=-140 (toute la largeur de la route), z entre -100 et +100
     else if (newProgress.checkpoints.checkpoint1 && 
              newProgress.checkpoints.checkpoint2 && 
              !newProgress.checkpoints.checkpoint3 && 
-             x < -150 && Math.abs(z) < 100) {
+             x < -140 && x > -220 && z > -100 && z < 100) {
       newProgress.checkpoints.checkpoint3 = true;
-      newProgress.canFinishLap = true;
+      newProgress.canFinishLap = true; // Maintenant on peut finir le tour
       stateChanged = true;
-      console.log("✅ CHECKPOINT 3 (OUEST) franchi ! Peut finir le tour.");
+      console.log("✅ CHECKPOINT 3 (GAUCHE) franchi ! Zone élargie activée. Peut finir le tour maintenant.");
     }
     
-    // Ligne d'arrivée
+    // LIGNE D'ARRIVÉE - Finir le tour (zone élargie de ligne d'arrivée au sud)
+    // Zone élargie : z entre -220 et -140, x entre -100 et +100 (toute la largeur)
     else if (newProgress.canFinishLap && 
-             Math.abs(x) < 50 && z < -150) {
+             z < -140 && z > -220 && x > -100 && x < 100) {
       
-      const minDelay = 1000;
+      // Vérification du délai minimum entre les tours
+      const minDelay = 1000; // 1 seconde entre les tours
       
       if ((currentTime - newProgress.lastLapTime) > minDelay) {
+        // TOUR TERMINÉ !
         newProgress.currentLap += 1;
         newProgress.lastLapTime = currentTime;
         
+        // Remettre à zéro pour le tour suivant
         newProgress.checkpoints = {
           checkpoint1: false,
           checkpoint2: false,
@@ -280,12 +302,14 @@ function Car({ position, rotation, onPositionChange, onLapComplete, onRotationCh
         newProgress.canFinishLap = false;
         
         stateChanged = true;
-        console.log(`🏁 TOUR ${newProgress.currentLap} TERMINÉ !`);
+        console.log(`🏁 TOUR ${newProgress.currentLap} TERMINÉ ! Zone d'arrivée élargie.`);
         
+        // Signaler le tour complet au composant parent
         onLapComplete();
       }
     }
 
+    // Mettre à jour l'état seulement si quelque chose a changé
     if (stateChanged) {
       setLapProgress(newProgress);
     }
@@ -294,18 +318,20 @@ function Car({ position, rotation, onPositionChange, onLapComplete, onRotationCh
   useFrame(() => {
     if (!carRef.current) return;
 
-    const speed = 0.18;
-    const rotationSpeed = 0.045;
+    const speed = 0.15;
+    const rotationSpeed = 0.04;
     let newVelocity = { ...velocity };
     let newRotation = carRotation;
 
-    // Contrôles
+    // Contrôles de direction
     if (keysPressed.current['ArrowLeft'] || keysPressed.current['KeyA']) {
       newRotation += rotationSpeed;
     }
     if (keysPressed.current['ArrowRight'] || keysPressed.current['KeyD']) {
       newRotation -= rotationSpeed;
     }
+
+    // Contrôles d'accélération
     if (keysPressed.current['ArrowUp'] || keysPressed.current['KeyW']) {
       newVelocity.x += Math.sin(newRotation) * speed;
       newVelocity.z += Math.cos(newRotation) * speed;
@@ -316,22 +342,24 @@ function Car({ position, rotation, onPositionChange, onLapComplete, onRotationCh
     }
 
     // Friction
-    newVelocity.x *= 0.93;
-    newVelocity.z *= 0.93;
+    newVelocity.x *= 0.92;
+    newVelocity.z *= 0.92;
 
-    // Nouvelle position
+    // Calcul de la nouvelle position
     let newPosition = [
       carPosition[0] + newVelocity.x,
       carPosition[1],
       carPosition[2] + newVelocity.z
     ];
 
-    // Vérifier les collisions
-    const collisionCheckedPosition = checkCollisions(newPosition);
+    // VÉRIFIER LES COLLISIONS AVEC LES BARRIÈRES
+    const collisionCheckedPosition = checkBarrierCollisions(newPosition);
     
+    // Si il y a eu collision, réduire la vitesse
     if (collisionCheckedPosition[0] !== newPosition[0] || collisionCheckedPosition[2] !== newPosition[2]) {
-      newVelocity.x *= 0.3;
-      newVelocity.z *= 0.3;
+      newVelocity.x *= 0.1; // Forte réduction de vitesse lors d'une collision
+      newVelocity.z *= 0.1;
+      console.log("💥 COLLISION avec barrière !");
     }
     
     newPosition = collisionCheckedPosition;
@@ -340,8 +368,10 @@ function Car({ position, rotation, onPositionChange, onLapComplete, onRotationCh
     setCarRotation(newRotation);
     setVelocity(newVelocity);
     
+    // Vérifier la progression du tour avec zones élargies
     checkLapProgress(newPosition);
 
+    // Mise à jour de l'objet 3D
     if (carRef.current) {
       carRef.current.position.set(newPosition[0], newPosition[1], newPosition[2]);
       carRef.current.rotation.y = newRotation;
@@ -353,7 +383,7 @@ function Car({ position, rotation, onPositionChange, onLapComplete, onRotationCh
 
   return (
     <group ref={carRef} scale={[1.5, 1.5, 1.5]}>
-      {/* Corps de la voiture */}
+      {/* Corps de la voiture - Style plus moderne - AGRANDI x1.5 */}
       <Box args={[2, 0.6, 4]} position={[0, 0.3, 0]}>
         <meshStandardMaterial color="#ff4444" metalness={0.7} roughness={0.3} />
       </Box>
@@ -365,7 +395,7 @@ function Car({ position, rotation, onPositionChange, onLapComplete, onRotationCh
       <Box args={[1.4, 0.6, 0.1]} position={[0, 1.2, 0.8]}>
         <meshStandardMaterial color="#87CEEB" transparent opacity={0.7} />
       </Box>
-      {/* Roues */}
+      {/* Roues avec jantes */}
       <Cylinder args={[0.4, 0.4, 0.3]} position={[-1.2, 0, 1.5]} rotation={[0, 0, Math.PI/2]}>
         <meshStandardMaterial color="#333333" />
       </Cylinder>
@@ -378,7 +408,7 @@ function Car({ position, rotation, onPositionChange, onLapComplete, onRotationCh
       <Cylinder args={[0.4, 0.4, 0.3]} position={[1.2, 0, -1.5]} rotation={[0, 0, Math.PI/2]}>
         <meshStandardMaterial color="#333333" />
       </Cylinder>
-      {/* Jantes */}
+      {/* Jantes chromées */}
       <Cylinder args={[0.25, 0.25, 0.1]} position={[-1.3, 0, 1.5]} rotation={[0, 0, Math.PI/2]}>
         <meshStandardMaterial color="#silver" metalness={0.9} roughness={0.1} />
       </Cylinder>
@@ -395,266 +425,89 @@ function Car({ position, rotation, onPositionChange, onLapComplete, onRotationCh
   );
 }
 
-// Circuit rectangulaire avec virages arrondis
-function RectangularTrack() {
-  // Surface de base
-  const createTrackSurface = () => {
+// Piste 3D circulaire avec BARRIÈRES DE SÉCURITÉ et COLLISIONS
+function CircularRaceTrack() {
+  // Créer la piste circulaire avec des segments droits
+  const createCircularTrack = () => {
     const segments = [];
+    const radius = 180;
+    const trackWidth = 40;
+    const numSegments = 64;
     
-    // Lignes droites
-    // Sud (départ/arrivée)
-    segments.push(
-      <Box key="straight-south" args={[60, 0.5, 150]} position={[0, 0, -175]}>
-        <meshStandardMaterial color="#333333" />
-      </Box>
-    );
-    
-    // Nord
-    segments.push(
-      <Box key="straight-north" args={[60, 0.5, 150]} position={[0, 0, 175]}>
-        <meshStandardMaterial color="#333333" />
-      </Box>
-    );
-    
-    // Est
-    segments.push(
-      <Box key="straight-east" args={[150, 0.5, 60]} position={[175, 0, 0]}>
-        <meshStandardMaterial color="#333333" />
-      </Box>
-    );
-    
-    // Ouest
-    segments.push(
-      <Box key="straight-west" args={[150, 0.5, 60]} position={[-175, 0, 0]}>
-        <meshStandardMaterial color="#333333" />
-      </Box>
-    );
-    
-    // Virages arrondis
-    for (let i = 0; i < 32; i++) {
-      const angle = (i / 32) * Math.PI / 2;
+    for (let i = 0; i < numSegments; i++) {
+      const angle = (i / numSegments) * Math.PI * 2;
+      const x = Math.cos(angle) * radius;
+      const z = Math.sin(angle) * radius;
       
-      // Virage nord-est
-      const neX = 100 + Math.cos(angle) * 75;
-      const neZ = 100 + Math.sin(angle) * 75;
       segments.push(
-        <Box key={`ne-${i}`} args={[60, 0.5, 15]} position={[neX, 0, neZ]} rotation={[0, angle, 0]}>
-          <meshStandardMaterial color="#333333" />
-        </Box>
-      );
-      
-      // Virage sud-est
-      const seX = 100 + Math.cos(angle + Math.PI/2) * 75;
-      const seZ = -100 + Math.sin(angle + Math.PI/2) * 75;
-      segments.push(
-        <Box key={`se-${i}`} args={[60, 0.5, 15]} position={[seX, 0, seZ]} rotation={[0, angle + Math.PI/2, 0]}>
-          <meshStandardMaterial color="#333333" />
-        </Box>
-      );
-      
-      // Virage sud-ouest
-      const swX = -100 + Math.cos(angle + Math.PI) * 75;
-      const swZ = -100 + Math.sin(angle + Math.PI) * 75;
-      segments.push(
-        <Box key={`sw-${i}`} args={[60, 0.5, 15]} position={[swX, 0, swZ]} rotation={[0, angle + Math.PI, 0]}>
-          <meshStandardMaterial color="#333333" />
-        </Box>
-      );
-      
-      // Virage nord-ouest
-      const nwX = -100 + Math.cos(angle + 3*Math.PI/2) * 75;
-      const nwZ = 100 + Math.sin(angle + 3*Math.PI/2) * 75;
-      segments.push(
-        <Box key={`nw-${i}`} args={[60, 0.5, 15]} position={[nwX, 0, nwZ]} rotation={[0, angle + 3*Math.PI/2, 0]}>
+        <Box 
+          key={i} 
+          args={[trackWidth, 0.5, trackWidth/2]} 
+          position={[x, 0, z]} 
+          rotation={[0, angle, 0]}
+        >
           <meshStandardMaterial color="#333333" />
         </Box>
       );
     }
-    
     return segments;
   };
 
-  // Barrières de sécurité
-  const createBarriers = () => {
+  // CRÉER LES BARRIÈRES DE SÉCURITÉ
+  const createSafetyBarriers = () => {
     const barriers = [];
+    const numBarriers = 80;
     
-    // Barrières lignes droites
-    // Sud - extérieur
-    for (let i = -4; i <= 4; i++) {
-      barriers.push(
-        <group key={`barrier-south-out-${i}`} position={[i * 20, 0, -260]}>
-          <Box args={[8, 4, 3]}>
-            <meshStandardMaterial color="#ff3333" />
-          </Box>
-          <Box args={[8, 1, 3]} position={[0, 2, 0]}>
-            <meshStandardMaterial color="#ffffff" />
-          </Box>
-        </group>
-      );
-    }
-    
-    // Sud - intérieur
-    for (let i = -4; i <= 4; i++) {
-      barriers.push(
-        <group key={`barrier-south-in-${i}`} position={[i * 20, 0, -90]}>
-          <Box args={[8, 4, 3]}>
-            <meshStandardMaterial color="#ff3333" />
-          </Box>
-          <Box args={[8, 1, 3]} position={[0, 2, 0]}>
-            <meshStandardMaterial color="#ffffff" />
-          </Box>
-        </group>
-      );
-    }
-    
-    // Nord - extérieur
-    for (let i = -4; i <= 4; i++) {
-      barriers.push(
-        <group key={`barrier-north-out-${i}`} position={[i * 20, 0, 260]}>
-          <Box args={[8, 4, 3]}>
-            <meshStandardMaterial color="#ff3333" />
-          </Box>
-          <Box args={[8, 1, 3]} position={[0, 2, 0]}>
-            <meshStandardMaterial color="#ffffff" />
-          </Box>
-        </group>
-      );
-    }
-    
-    // Nord - intérieur
-    for (let i = -4; i <= 4; i++) {
-      barriers.push(
-        <group key={`barrier-north-in-${i}`} position={[i * 20, 0, 90]}>
-          <Box args={[8, 4, 3]}>
-            <meshStandardMaterial color="#ff3333" />
-          </Box>
-          <Box args={[8, 1, 3]} position={[0, 2, 0]}>
-            <meshStandardMaterial color="#ffffff" />
-          </Box>
-        </group>
-      );
-    }
-    
-    // Est - extérieur
-    for (let i = -4; i <= 4; i++) {
-      barriers.push(
-        <group key={`barrier-east-out-${i}`} position={[260, 0, i * 20]}>
-          <Box args={[3, 4, 8]}>
-            <meshStandardMaterial color="#ff3333" />
-          </Box>
-          <Box args={[3, 1, 8]} position={[0, 2, 0]}>
-            <meshStandardMaterial color="#ffffff" />
-          </Box>
-        </group>
-      );
-    }
-    
-    // Est - intérieur
-    for (let i = -4; i <= 4; i++) {
-      barriers.push(
-        <group key={`barrier-east-in-${i}`} position={[90, 0, i * 20]}>
-          <Box args={[3, 4, 8]}>
-            <meshStandardMaterial color="#ff3333" />
-          </Box>
-          <Box args={[3, 1, 8]} position={[0, 2, 0]}>
-            <meshStandardMaterial color="#ffffff" />
-          </Box>
-        </group>
-      );
-    }
-    
-    // Ouest - extérieur
-    for (let i = -4; i <= 4; i++) {
-      barriers.push(
-        <group key={`barrier-west-out-${i}`} position={[-260, 0, i * 20]}>
-          <Box args={[3, 4, 8]}>
-            <meshStandardMaterial color="#ff3333" />
-          </Box>
-          <Box args={[3, 1, 8]} position={[0, 2, 0]}>
-            <meshStandardMaterial color="#ffffff" />
-          </Box>
-        </group>
-      );
-    }
-    
-    // Ouest - intérieur
-    for (let i = -4; i <= 4; i++) {
-      barriers.push(
-        <group key={`barrier-west-in-${i}`} position={[-90, 0, i * 20]}>
-          <Box args={[3, 4, 8]}>
-            <meshStandardMaterial color="#ff3333" />
-          </Box>
-          <Box args={[3, 1, 8]} position={[0, 2, 0]}>
-            <meshStandardMaterial color="#ffffff" />
-          </Box>
-        </group>
-      );
-    }
-    
-    // Barrières des virages
-    for (let i = 0; i < 16; i++) {
-      const angle = (i / 16) * Math.PI / 2;
+    // BARRIÈRES EXTÉRIEURES (rayon 235)
+    for (let i = 0; i < numBarriers; i++) {
+      const angle = (i / numBarriers) * Math.PI * 2;
+      const x = Math.cos(angle) * 235;
+      const z = Math.sin(angle) * 235;
       
-      // Barrières extérieures des virages
-      // Nord-est
-      const neOutX = 100 + Math.cos(angle) * 110;
-      const neOutZ = 100 + Math.sin(angle) * 110;
       barriers.push(
-        <group key={`barrier-ne-out-${i}`} position={[neOutX, 0, neOutZ]} rotation={[0, angle + Math.PI, 0]}>
+        <group key={`outer-${i}`} position={[x, 0, z]} rotation={[0, angle, 0]}>
+          {/* Barrière principale */}
           <Box args={[3, 4, 8]}>
-            <meshStandardMaterial color="#ff3333" />
+            <meshStandardMaterial color="#ff3333" metalness={0.3} roughness={0.7} />
           </Box>
-          <Box args={[3, 1, 8]} position={[0, 2, 0]}>
+          {/* Rayures de sécurité */}
+          <Box args={[3.2, 1, 8.2]} position={[0, 2, 0]}>
             <meshStandardMaterial color="#ffffff" />
           </Box>
-        </group>
-      );
-      
-      // Barrières intérieures des virages
-      const neInX = 100 + Math.cos(angle) * 40;
-      const neInZ = 100 + Math.sin(angle) * 40;
-      barriers.push(
-        <group key={`barrier-ne-in-${i}`} position={[neInX, 0, neInZ]} rotation={[0, angle, 0]}>
-          <Box args={[3, 4, 8]}>
-            <meshStandardMaterial color="#ff3333" />
-          </Box>
-          <Box args={[3, 1, 8]} position={[0, 2, 0]}>
+          <Box args={[3.2, 1, 8.2]} position={[0, 0, 0]}>
             <meshStandardMaterial color="#ffffff" />
           </Box>
+          {/* Support métallique */}
+          <Cylinder args={[0.2, 0.2, 4]} position={[0, 2, 0]}>
+            <meshStandardMaterial color="#666666" metalness={0.8} roughness={0.2} />
+          </Cylinder>
         </group>
       );
+    }
+    
+    // BARRIÈRES INTÉRIEURES (rayon 145)
+    for (let i = 0; i < numBarriers; i++) {
+      const angle = (i / numBarriers) * Math.PI * 2;
+      const x = Math.cos(angle) * 145;
+      const z = Math.sin(angle) * 145;
       
-      // Répéter pour les autres virages...
-      // Sud-est
-      const seOutX = 100 + Math.cos(angle + Math.PI/2) * 110;
-      const seOutZ = -100 + Math.sin(angle + Math.PI/2) * 110;
       barriers.push(
-        <group key={`barrier-se-out-${i}`} position={[seOutX, 0, seOutZ]} rotation={[0, angle + 3*Math.PI/2, 0]}>
+        <group key={`inner-${i}`} position={[x, 0, z]} rotation={[0, angle + Math.PI, 0]}>
+          {/* Barrière principale */}
           <Box args={[3, 4, 8]}>
-            <meshStandardMaterial color="#ff3333" />
+            <meshStandardMaterial color="#ff3333" metalness={0.3} roughness={0.7} />
           </Box>
-        </group>
-      );
-      
-      // Sud-ouest
-      const swOutX = -100 + Math.cos(angle + Math.PI) * 110;
-      const swOutZ = -100 + Math.sin(angle + Math.PI) * 110;
-      barriers.push(
-        <group key={`barrier-sw-out-${i}`} position={[swOutX, 0, swOutZ]} rotation={[0, angle + Math.PI/2, 0]}>
-          <Box args={[3, 4, 8]}>
-            <meshStandardMaterial color="#ff3333" />
+          {/* Rayures de sécurité */}
+          <Box args={[3.2, 1, 8.2]} position={[0, 2, 0]}>
+            <meshStandardMaterial color="#ffffff" />
           </Box>
-        </group>
-      );
-      
-      // Nord-ouest
-      const nwOutX = -100 + Math.cos(angle + 3*Math.PI/2) * 110;
-      const nwOutZ = 100 + Math.sin(angle + 3*Math.PI/2) * 110;
-      barriers.push(
-        <group key={`barrier-nw-out-${i}`} position={[nwOutX, 0, nwOutZ]} rotation={[0, angle, 0]}>
-          <Box args={[3, 4, 8]}>
-            <meshStandardMaterial color="#ff3333" />
+          <Box args={[3.2, 1, 8.2]} position={[0, 0, 0]}>
+            <meshStandardMaterial color="#ffffff" />
           </Box>
+          {/* Support métallique */}
+          <Cylinder args={[0.2, 0.2, 4]} position={[0, 2, 0]}>
+            <meshStandardMaterial color="#666666" metalness={0.8} roughness={0.2} />
+          </Cylinder>
         </group>
       );
     }
@@ -664,85 +517,86 @@ function RectangularTrack() {
 
   return (
     <group>
-      {/* Surface de base */}
-      <Plane args={[800, 800]} rotation={[-Math.PI/2, 0, 0]} position={[0, -0.5, 0]}>
-        <meshStandardMaterial color="#228B22" />
-      </Plane>
+      {/* Surface de route plate principale */}
+      <Cylinder args={[220, 220, 0.3]} position={[0, -0.1, 0]}>
+        <meshStandardMaterial color="#444444" />
+      </Cylinder>
       
-      {/* Piste */}
-      {createTrackSurface()}
+      {/* Piste circulaire avec segments */}
+      {createCircularTrack()}
       
-      {/* Barrières */}
-      {createBarriers()}
+      {/* BARRIÈRES DE SÉCURITÉ AVEC COLLISIONS */}
+      {createSafetyBarriers()}
       
-      {/* Lignes blanches centrales */}
-      <Box args={[2, 0.1, 150]} position={[0, 0.3, -175]}>
-        <meshStandardMaterial color="#ffffff" />
-      </Box>
-      <Box args={[2, 0.1, 150]} position={[0, 0.3, 175]}>
-        <meshStandardMaterial color="#ffffff" />
-      </Box>
-      <Box args={[150, 0.1, 2]} position={[175, 0.3, 0]}>
-        <meshStandardMaterial color="#ffffff" />
-      </Box>
-      <Box args={[150, 0.1, 2]} position={[-175, 0.3, 0]}>
-        <meshStandardMaterial color="#ffffff" />
-      </Box>
-      
-      {/* Checkpoints */}
-      <group position={[0, 0.3, 200]}>
-        <Box args={[100, 0.2, 20]}>
-          <meshStandardMaterial color="#00ff00" emissive="#004400" transparent opacity={0.7} />
-        </Box>
-        <Text position={[0, 5, 0]} fontSize={8} color="#00ff00" anchorX="center" anchorY="middle">
-          CHECKPOINT 1
-        </Text>
-      </group>
-      
-      <group position={[200, 0.3, 0]}>
-        <Box args={[20, 0.2, 100]}>
-          <meshStandardMaterial color="#00ff00" emissive="#004400" transparent opacity={0.7} />
-        </Box>
-        <Text position={[0, 5, 0]} fontSize={8} color="#00ff00" anchorX="center" anchorY="middle">
-          CHECKPOINT 2
-        </Text>
-      </group>
-      
-      <group position={[-200, 0.3, 0]}>
-        <Box args={[20, 0.2, 100]}>
-          <meshStandardMaterial color="#00ff00" emissive="#004400" transparent opacity={0.7} />
-        </Box>
-        <Text position={[0, 5, 0]} fontSize={8} color="#00ff00" anchorX="center" anchorY="middle">
-          CHECKPOINT 3
-        </Text>
-      </group>
-      
-      {/* Ligne d'arrivée */}
-      <group position={[0, 0.4, -230]}>
-        <Box args={[100, 0.2, 8]}>
-          <meshStandardMaterial color="#ffffff" />
-        </Box>
-        {Array.from({ length: 25 }).map((_, i) => (
-          <Box key={i} args={[4, 0.3, 4]} position={[-50 + i * 4, 0, 0]}>
-            <meshStandardMaterial color={i % 2 === 0 ? "#000000" : "#ffffff"} />
+      {/* Lignes blanches centrales - Segments plats */}
+      {Array.from({ length: 64 }).map((_, i) => {
+        const angle = (i / 64) * Math.PI * 2;
+        const x = Math.cos(angle) * 180;
+        const z = Math.sin(angle) * 180;
+        return (
+          <Box 
+            key={i} 
+            args={[2, 0.1, 8]} 
+            position={[x, 0.3, z]} 
+            rotation={[0, angle, 0]}
+          >
+            <meshStandardMaterial color="#ffffff" />
           </Box>
-        ))}
-        <Text position={[0, 15, 15]} fontSize={8} color="#ffffff" anchorX="center" anchorY="middle">
-          DÉPART / ARRIVÉE
-        </Text>
-      </group>
+        );
+      })}
       
-      {/* Arbres décoratifs */}
+      {/* Lignes blanches intérieures */}
+      {Array.from({ length: 64 }).map((_, i) => {
+        const angle = (i / 64) * Math.PI * 2;
+        const x = Math.cos(angle) * 160;
+        const z = Math.sin(angle) * 160;
+        return (
+          <Box 
+            key={i} 
+            args={[2, 0.1, 8]} 
+            position={[x, 0.3, z]} 
+            rotation={[0, angle, 0]}
+          >
+            <meshStandardMaterial color="#ffffff" />
+          </Box>
+        );
+      })}
+      
+      {/* Lignes blanches extérieures */}
+      {Array.from({ length: 64 }).map((_, i) => {
+        const angle = (i / 64) * Math.PI * 2;
+        const x = Math.cos(angle) * 200;
+        const z = Math.sin(angle) * 200;
+        return (
+          <Box 
+            key={i} 
+            args={[2, 0.1, 8]} 
+            position={[x, 0.3, z]} 
+            rotation={[0, angle, 0]}
+          >
+            <meshStandardMaterial color="#ffffff" />
+          </Box>
+        );
+      })}
+      
+      {/* Herbe autour de la piste - GÉANTE */}
+      <Cylinder args={[300, 300, 0.2]} position={[0, -0.5, 0]}>
+        <meshStandardMaterial color="#228B22" />
+      </Cylinder>
+      
+      {/* Arbres décoratifs - Plus espacés */}
       {Array.from({ length: 16 }).map((_, i) => {
         const angle = (i / 16) * Math.PI * 2;
-        const radius = 350;
+        const radius = 280;
         const x = Math.cos(angle) * radius;
         const z = Math.sin(angle) * radius;
         return (
           <group key={i} position={[x, 0, z]}>
+            {/* Tronc */}
             <Cylinder args={[2, 3, 15]} position={[0, 7.5, 0]}>
               <meshStandardMaterial color="#8B4513" />
             </Cylinder>
+            {/* Feuillage */}
             <Box args={[12, 12, 12]} position={[0, 18, 0]}>
               <meshStandardMaterial color="#006400" />
             </Box>
@@ -750,25 +604,102 @@ function RectangularTrack() {
         );
       })}
       
-      {/* Éclairage */}
-      {Array.from({ length: 12 }).map((_, i) => {
-        const positions = [
-          [0, 300], [150, 150], [300, 0], [150, -150],
-          [0, -300], [-150, -150], [-300, 0], [-150, 150],
-          [100, 250], [250, 100], [100, -250], [-100, 250]
-        ];
-        const pos = positions[i];
-        if (!pos) return null;
-        
+      {/* Panneaux publicitaires - Échelle x10 */}
+      {Array.from({ length: 8 }).map((_, i) => {
+        const angle = (i / 8) * Math.PI * 2;
+        const radius = 250;
+        const x = Math.cos(angle) * radius;
+        const z = Math.sin(angle) * radius;
         return (
-          <group key={i} position={[pos[0], 20, pos[1]]}>
+          <group key={i} position={[x, 10, z]} rotation={[0, -angle, 0]}>
+            <Box args={[30, 15, 1]}>
+              <meshStandardMaterial color="#0066ff" />
+            </Box>
+            <Plane args={[25, 10]} position={[0, 0, 0.6]}>
+              <meshStandardMaterial color="#ffffff" />
+            </Plane>
+          </group>
+        );
+      })}
+      
+      {/* Checkpoints ÉLARGIS - COUVRENT TOUTE LA LARGEUR DE LA ROUTE */}
+      <group>
+        {/* Checkpoint 1 (DROITE) - ZONE ÉLARGIE de x=140 à x=220, z de -100 à +100 */}
+        <group position={[180, 0.3, 0]}>
+          {/* Ligne principale élargie */}
+          <Box args={[200, 0.2, 8]} position={[0, 0, 0]}>
+            <meshStandardMaterial color="#00ff00" emissive="#004400" />
+          </Box>
+          {/* Rayures vertes alternées plus larges */}
+          {Array.from({ length: 50 }).map((_, i) => (
+            <Box key={i} args={[4, 0.3, 4]} position={[-100 + i * 4, 0, 0]}>
+              <meshStandardMaterial color={i % 2 === 0 ? "#00ff00" : "#00cc00"} emissive="#002200" />
+            </Box>
+          ))}
+        </group>
+        
+        {/* Checkpoint 2 (HAUT) - ZONE ÉLARGIE de z=140 à z=220, x de -100 à +100 */}
+        <group position={[0, 0.3, 180]}>
+          {/* Ligne principale élargie */}
+          <Box args={[8, 0.2, 200]} position={[0, 0, 0]}>
+            <meshStandardMaterial color="#00ff00" emissive="#004400" />
+          </Box>
+          {/* Rayures vertes alternées plus larges */}
+          {Array.from({ length: 50 }).map((_, i) => (
+            <Box key={i} args={[4, 0.3, 4]} position={[0, 0, -100 + i * 4]}>
+              <meshStandardMaterial color={i % 2 === 0 ? "#00ff00" : "#00cc00"} emissive="#002200" />
+            </Box>
+          ))}
+        </group>
+        
+        {/* Checkpoint 3 (GAUCHE) - ZONE ÉLARGIE de x=-220 à x=-140, z de -100 à +100 */}
+        <group position={[-180, 0.3, 0]}>
+          {/* Ligne principale élargie */}
+          <Box args={[200, 0.2, 8]} position={[0, 0, 0]}>
+            <meshStandardMaterial color="#00ff00" emissive="#004400" />
+          </Box>
+          {/* Rayures vertes alternées plus larges */}
+          {Array.from({ length: 50 }).map((_, i) => (
+            <Box key={i} args={[4, 0.3, 4]} position={[-100 + i * 4, 0, 0]}>
+              <meshStandardMaterial color={i % 2 === 0 ? "#00ff00" : "#00cc00"} emissive="#002200" />
+            </Box>
+          ))}
+        </group>
+      </group>
+      
+      {/* Ligne de départ/arrivée avec damier - ZONE ÉLARGIE */}
+      <group position={[0, 0.4, -180]} rotation={[0, 0, 0]}>
+        {/* Ligne d'arrivée perpendiculaire élargie qui traverse toute la largeur de la piste */}
+        <Box args={[8, 0.2, 200]} position={[0, 0, 0]}>
+          <meshStandardMaterial color="#ffffff" />
+        </Box>
+        {/* Motif damier perpendiculaire élargi - traverse toute la largeur */}
+        {Array.from({ length: 50 }).map((_, i) => (
+          <Box key={i} args={[4, 0.3, 4]} position={[0, 0, -100 + i * 4]}>
+            <meshStandardMaterial color={i % 2 === 0 ? "#000000" : "#ffffff"} />
+          </Box>
+        ))}
+        {/* Panneau DÉPART/ARRIVÉE - GARDÉ pour la ligne d'arrivée */}
+        <Box args={[15, 10, 1]} position={[0, 10, 15]}>
+          <meshStandardMaterial color="#ffffff" />
+        </Box>
+      </group>
+      
+      {/* Éclairage de la piste - Plus de lampadaires */}
+      {Array.from({ length: 20 }).map((_, i) => {
+        const angle = (i / 20) * Math.PI * 2;
+        const radius = 260; // Déplacés plus loin pour laisser place aux barrières
+        const x = Math.cos(angle) * radius;
+        const z = Math.sin(angle) * radius;
+        return (
+          <group key={i} position={[x, 20, z]}>
             <Cylinder args={[0.5, 0.5, 20]} position={[0, 0, 0]}>
               <meshStandardMaterial color="#666666" />
             </Cylinder>
             <Box args={[3, 3, 3]} position={[0, 12, 0]}>
               <meshStandardMaterial color="#ffff00" emissive="#444400" />
             </Box>
-            <pointLight position={[0, 10, 0]} intensity={2} color="#ffff88" distance={150} />
+            <pointLight position={[0, 10, 0]} intensity={2} color="#ffff88" distance={100} />
           </group>
         );
       })}
@@ -776,7 +707,7 @@ function RectangularTrack() {
   );
 }
 
-// Caméra qui suit la voiture
+// Caméra qui suit automatiquement la voiture (troisième personne)
 function FollowCamera({ carPosition, carRotation, cameraMode }: { carPosition: number[], carRotation: number, cameraMode: string }) {
   const { camera } = useThree();
   
@@ -786,20 +717,25 @@ function FollowCamera({ carPosition, carRotation, cameraMode }: { carPosition: n
     const carZ = carPosition[2];
     
     if (cameraMode === 'follow') {
-      const distance = 35;
-      const height = 25;
+      // Caméra de suivi (troisième personne)
+      const distance = 25;
+      const height = 15;
       
+      // Position de la caméra derrière la voiture
       const cameraX = carX - Math.sin(carRotation) * distance;
       const cameraY = carY + height;
       const cameraZ = carZ - Math.cos(carRotation) * distance;
       
-      const targetX = carX + Math.sin(carRotation) * 15;
+      // Position cible (devant la voiture)
+      const targetX = carX + Math.sin(carRotation) * 10;
       const targetY = carY + 2;
-      const targetZ = carZ + Math.cos(carRotation) * 15;
+      const targetZ = carZ + Math.cos(carRotation) * 10;
       
+      // Interpolation fluide pour éviter les mouvements brusques
       camera.position.lerp(new THREE.Vector3(cameraX, cameraY, cameraZ), 0.1);
       camera.lookAt(new THREE.Vector3(targetX, targetY, targetZ));
     } else if (cameraMode === 'cockpit') {
+      // Vue cockpit (première personne)
       const offsetY = 2;
       const offsetZ = 1;
       
@@ -807,6 +743,7 @@ function FollowCamera({ carPosition, carRotation, cameraMode }: { carPosition: n
       const cockpitY = carY + offsetY;
       const cockpitZ = carZ + Math.cos(carRotation) * offsetZ;
       
+      // Position cible devant la voiture
       const targetX = carX + Math.sin(carRotation) * 20;
       const targetY = carY + 1;
       const targetZ = carZ + Math.cos(carRotation) * 20;
@@ -814,7 +751,8 @@ function FollowCamera({ carPosition, carRotation, cameraMode }: { carPosition: n
       camera.position.lerp(new THREE.Vector3(cockpitX, cockpitY, cockpitZ), 0.15);
       camera.lookAt(new THREE.Vector3(targetX, targetY, targetZ));
     } else if (cameraMode === 'aerial') {
-      const height = 60;
+      // Vue aérienne
+      const height = 40;
       camera.position.lerp(new THREE.Vector3(carX, carY + height, carZ), 0.05);
       camera.lookAt(new THREE.Vector3(carX, carY, carZ));
     }
@@ -823,7 +761,7 @@ function FollowCamera({ carPosition, carRotation, cameraMode }: { carPosition: n
   return null;
 }
 
-// Interface utilisateur
+// Interface utilisateur avec compteur de tours et sélecteur de caméra
 function UI({ currentLap, totalLaps, gameWon, raceTime, cameraMode, onCameraModeChange }: any) {
   return (
     <div style={{
@@ -841,7 +779,7 @@ function UI({ currentLap, totalLaps, gameWon, raceTime, cameraMode, onCameraMode
       border: '2px solid #ffdd00'
     }}>
       <h3 style={{ margin: '0 0 15px 0', color: '#ffdd00', textAlign: 'center' }}>
-        🏁 CIRCUIT F1 RECTANGULAIRE
+        🏁 Circuit Circulaire F1
       </h3>
       
       <div style={{ 
@@ -863,7 +801,7 @@ function UI({ currentLap, totalLaps, gameWon, raceTime, cameraMode, onCameraMode
         ⏱️ Temps: {Math.floor(raceTime / 1000)}s
       </div>
       
-      {/* Sélecteur de caméra */}
+      {/* Sélecteur de mode de caméra */}
       <div style={{ 
         marginBottom: '15px', 
         borderTop: '1px solid #666', 
@@ -871,23 +809,48 @@ function UI({ currentLap, totalLaps, gameWon, raceTime, cameraMode, onCameraMode
       }}>
         <div style={{ marginBottom: '8px', color: '#ffdd00' }}>📷 Mode Caméra:</div>
         <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
-          {(['follow', 'cockpit', 'aerial'] as const).map(mode => (
-            <button 
-              key={mode}
-              onClick={() => onCameraModeChange(mode)}
-              style={{
-                background: cameraMode === mode ? '#ffdd00' : '#333',
-                color: cameraMode === mode ? '#000' : '#fff',
-                border: 'none',
-                padding: '4px 8px',
-                borderRadius: '4px',
-                fontSize: '12px',
-                cursor: 'pointer'
-              }}
-            >
-              {mode === 'follow' ? 'Suivi' : mode === 'cockpit' ? 'Cockpit' : 'Aérienne'}
-            </button>
-          ))}
+          <button 
+            onClick={() => onCameraModeChange('follow')}
+            style={{
+              background: cameraMode === 'follow' ? '#ffdd00' : '#333',
+              color: cameraMode === 'follow' ? '#000' : '#fff',
+              border: 'none',
+              padding: '4px 8px',
+              borderRadius: '4px',
+              fontSize: '12px',
+              cursor: 'pointer'
+            }}
+          >
+            Suivi
+          </button>
+          <button 
+            onClick={() => onCameraModeChange('cockpit')}
+            style={{
+              background: cameraMode === 'cockpit' ? '#ffdd00' : '#333',
+              color: cameraMode === 'cockpit' ? '#000' : '#fff',
+              border: 'none',
+              padding: '4px 8px',
+              borderRadius: '4px',
+              fontSize: '12px',
+              cursor: 'pointer'
+            }}
+          >
+            Cockpit
+          </button>
+          <button 
+            onClick={() => onCameraModeChange('aerial')}
+            style={{
+              background: cameraMode === 'aerial' ? '#ffdd00' : '#333',
+              color: cameraMode === 'aerial' ? '#000' : '#fff',
+              border: 'none',
+              padding: '4px 8px',
+              borderRadius: '4px',
+              fontSize: '12px',
+              cursor: 'pointer'
+            }}
+          >
+            Aérienne
+          </button>
         </div>
       </div>
       
@@ -917,7 +880,7 @@ function UI({ currentLap, totalLaps, gameWon, raceTime, cameraMode, onCameraMode
         <div>←/A - Tourner à gauche</div>
         <div>→/D - Tourner à droite</div>
         <div style={{ marginTop: '10px', color: '#00ff00' }}>
-          🏁 Circuit rectangulaire avec virages !
+          ✅ Checkpoints élargis pour plus de facilité !
         </div>
       </div>
     </div>
@@ -926,8 +889,9 @@ function UI({ currentLap, totalLaps, gameWon, raceTime, cameraMode, onCameraMode
 
 const Block: React.FC<BlockProps> = ({ title, description }) => {
   const [gameStarted, setGameStarted] = useState(false);
-  const [carPosition, setCarPosition] = useState([0, 1, -200]);
-  const [carRotation, setCarRotation] = useState(Math.PI / 2);
+  // POSITION DE DÉPART CORRIGÉE : Sur la piste circulaire à la ligne d'arrivée
+  const [carPosition, setCarPosition] = useState([0, 1, -180]); // Exactement sur la ligne d'arrivée (piste circulaire)
+  const [carRotation, setCarRotation] = useState(Math.PI / 2); // 90° pour regarder vers la droite (checkpoint 1)
   const [currentLap, setCurrentLap] = useState(0);
   const [totalLaps] = useState(3);
   const [gameWon, setGameWon] = useState(false);
@@ -946,16 +910,17 @@ const Block: React.FC<BlockProps> = ({ title, description }) => {
       
       if (newLap >= totalLaps) {
         setGameWon(true);
+        // Envoyer l'événement de completion quand la course est terminée
         window.postMessage({ 
           type: 'BLOCK_COMPLETION', 
-          blockId: 'rectangular-racing-3d', 
+          blockId: 'circular-racing-3d', 
           completed: true,
           score: Math.max(1000 - Math.floor((Date.now() - startTime) / 100), 100),
           timeSpent: Math.floor((Date.now() - startTime) / 1000)
         }, '*');
         window.parent.postMessage({ 
           type: 'BLOCK_COMPLETION', 
-          blockId: 'rectangular-racing-3d', 
+          blockId: 'circular-racing-3d', 
           completed: true,
           score: Math.max(1000 - Math.floor((Date.now() - startTime) / 100), 100),
           timeSpent: Math.floor((Date.now() - startTime) / 1000)
@@ -999,10 +964,10 @@ const Block: React.FC<BlockProps> = ({ title, description }) => {
       />
       
       <Canvas
-        camera={{ position: [0, 80, 120], fov: 75 }}
-        style={{ background: 'linear-gradient(to top, #87CEEB 0%, #98FB98 30%, #FFE4B5 70%, #FFA07A 100%)' }}
+        camera={{ position: [0, 50, 80], fov: 75 }}
+        style={{ background: 'linear-gradient(to top, #87CEEB 0%, #98FB98 50%, #FFE4B5 100%)' }}
       >
-        {/* Éclairage */}
+        {/* Éclairage amélioré */}
         <ambientLight intensity={0.4} />
         <directionalLight 
           position={[100, 100, 50]} 
@@ -1014,19 +979,19 @@ const Block: React.FC<BlockProps> = ({ title, description }) => {
         <directionalLight position={[-75, 75, -50]} intensity={0.8} />
         <pointLight position={[0, 50, 0]} intensity={1} color="#ffffff" />
         
-        {/* Circuit rectangulaire */}
-        <RectangularTrack />
+        {/* Piste circulaire avec BARRIÈRES DE SÉCURITÉ */}
+        <CircularRaceTrack />
         
-        {/* Voiture */}
+        {/* Voiture avec SYSTÈME DE COLLISION */}
         <Car 
-          position={[0, 1, -200]} 
+          position={[0, 1, -180]} 
           rotation={Math.PI / 2}
           onPositionChange={setCarPosition}
           onRotationChange={setCarRotation}
           onLapComplete={handleLapComplete}
         />
         
-        {/* Caméra */}
+        {/* Caméra qui suit automatiquement la voiture */}
         <FollowCamera 
           carPosition={carPosition} 
           carRotation={carRotation}
